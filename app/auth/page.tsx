@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { User, Lock, Eye, EyeOff, Loader2, Store, ChevronDown } from "lucide-react";
 import { signIn, signUp } from "@/lib/supabase/auth";
 import { useApp } from "@/lib/store/AppContext";
-import type { UserRole } from "@/lib/types";
+import type { UserRole, BusinessType } from "@/lib/types";
 
 type Mode = "signin" | "signup";
 
@@ -47,24 +47,34 @@ export default function AuthPage() {
     if (mode === "signup") {
       const result = await signUp({ username, password, role, businessName, ownerName, businessType: bizType });
       if (!result.ok) { setError(result.error ?? "Signup failed"); setLoading(false); return; }
-      // Auto sign-in after signup
       const login = await signIn(username, password);
       if (!login.ok) { setError("Signed up! Please sign in."); setLoading(false); setMode("signin"); return; }
-      setSession({ userId: login.userId ?? "", username, role, businessName, businessType: bizType as import("@/lib/types").BusinessType, gstPercent: 5 });
-      await loadMenuFromTemplate(bizType);
+      const uid = login.userId ?? `local_${username}`;
+      const session = {
+        userId: uid,
+        username,
+        role,
+        businessName,
+        businessType: bizType as BusinessType,
+        gstPercent: 5,
+      };
+      setSession(session);
+      await loadMenuFromTemplate(bizType, uid);
     } else {
       const result = await signIn(username, password);
       if (!result.ok) { setError(result.error ?? "Sign in failed"); setLoading(false); return; }
-      setSession({
-        userId: result.userId ?? "",
+      const uid = result.userId ?? `local_${username}`;
+      const session = {
+        userId: uid,
         username,
-        role: result.role ?? "cashier",
+        role: result.role ?? "cashier" as UserRole,
         businessName: result.businessName ?? "",
-        businessType: (result.businessType ?? "restaurant") as import("@/lib/types").BusinessType,
+        businessType: (result.businessType ?? "restaurant") as BusinessType,
         gstPercent: result.gstPercent ?? 5,
         upiId: result.upiId,
-      });
-      await loadMenuFromTemplate(result.businessType ?? "restaurant");
+      };
+      setSession(session);
+      await loadMenuFromTemplate(result.businessType ?? "restaurant", uid);
     }
 
     router.replace("/pos");
