@@ -17,18 +17,19 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
     .filter((c) => c.menuItemId === item.id)
     .reduce((s, c) => s + c.qty, 0);
 
-  // Item needs config modal if it has ANY of these
+  // ALWAYS open config modal if item has add-ons, sizes, or portions
   const hasOptions =
+    (item.addOns && item.addOns.length > 0) ||
     (item.sizes && item.sizes.length > 0) ||
-    (item.portionEnabled && item.portions && item.portions.length > 0) ||
-    (item.addOns && item.addOns.length > 0);
-
-  // Only fast-add if explicitly flagged AND has no options
-  const isFastAdd = !hasOptions;
+    (item.portionEnabled && item.portions && item.portions.length > 0);
 
   const handlePress = () => {
     if (!item.isAvailable) return;
-    if (isFastAdd) {
+    if (hasOptions) {
+      // Always open modal when item has any options
+      onConfigPress(item);
+    } else {
+      // Fast add only when truly no options at all
       addToCart({
         cartId: crypto.randomUUID(),
         menuItemId: item.id,
@@ -37,8 +38,6 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
         qty: 1,
         selectedAddOns: [],
       });
-    } else {
-      onConfigPress(item);
     }
   };
 
@@ -67,7 +66,9 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
             onClick={handlePress}
             disabled={!item.isAvailable}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all press ${cartQty > 0 ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-700"}`}>
-            {cartQty > 0 ? <><CheckCircle2 size={11} /><span>{cartQty}</span></> : <><Plus size={11} /><span>Add</span></>}
+            {cartQty > 0
+              ? <><CheckCircle2 size={11} /><span>{cartQty}</span></>
+              : <><Plus size={11} /><span>{hasOptions ? "Choose" : "Add"}</span></>}
           </button>
         </div>
       </div>
@@ -84,7 +85,9 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
           <span className={`w-1.5 h-1.5 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-500"}`} />
         </span>
         {!item.isAvailable && <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Unavailable</span>}
-        {hasOptions && item.isAvailable && <span className="text-[9px] text-primary-400 font-bold ml-auto">Customisable</span>}
+        {hasOptions && item.isAvailable && (
+          <span className="text-[9px] text-primary-400 font-bold ml-auto">Customisable</span>
+        )}
       </div>
       <p className="text-sm font-bold text-gray-900 leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">{item.name}</p>
       <div className="flex items-center justify-between">
