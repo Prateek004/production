@@ -63,25 +63,46 @@ export default function POSPage() {
   return (
     <>
       {/* ── DESKTOP ── */}
-      <div className="hidden lg:flex h-screen overflow-hidden">
+      <div className="hidden lg:flex h-screen w-screen overflow-hidden">
         <DesktopSidebar />
-        <div className="flex flex-col overflow-hidden" style={{ flex: "0 0 62%" }}>
-          <MenuPanel bizName={session?.businessName} categories={categories} items={filteredItems}
-            activeCat={activeCat} onCatChange={scrollCatIntoView} search={search} onSearch={setSearch} onItemPress={setConfigItem} />
-        </div>
-        <div className="flex flex-col overflow-hidden border-l border-gray-100 bg-white" style={{ flex: "0 0 38%" }}>
-          <CartPanel />
+        <div className="flex flex-1 overflow-hidden min-w-0">
+          {/* Menu panel */}
+          <div className="flex flex-col overflow-hidden flex-1 min-w-0">
+            <MenuPanel
+              bizName={session?.businessName}
+              categories={categories}
+              items={filteredItems}
+              activeCat={activeCat}
+              onCatChange={scrollCatIntoView}
+              search={search}
+              onSearch={setSearch}
+              onItemPress={setConfigItem}
+            />
+          </div>
+          {/* Cart panel */}
+          <div className="flex flex-col overflow-hidden border-l border-gray-100 bg-white w-80 xl:w-96 shrink-0">
+            <CartPanel />
+          </div>
         </div>
       </div>
 
       {/* ── MOBILE ── */}
-      <div className="lg:hidden flex flex-col h-screen overflow-hidden">
-        <MenuPanel bizName={session?.businessName} categories={categories} items={filteredItems}
-          activeCat={activeCat} onCatChange={scrollCatIntoView} search={search} onSearch={setSearch}
-          onItemPress={setConfigItem} mobileCompact />
+      <div className="lg:hidden flex flex-col h-screen w-screen overflow-hidden">
+        <MenuPanel
+          bizName={session?.businessName}
+          categories={categories}
+          items={filteredItems}
+          activeCat={activeCat}
+          onCatChange={scrollCatIntoView}
+          search={search}
+          onSearch={setSearch}
+          onItemPress={setConfigItem}
+          mobileCompact
+        />
 
         {cartCount > 0 && (
-          <button onClick={() => setCartOpen(true)}
+          <button
+            onClick={() => setCartOpen(true)}
             className="fixed bottom-16 left-3 right-3 z-30 bg-primary-500 rounded-2xl px-5 py-3 flex items-center shadow-xl press">
             <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center mr-3 shrink-0">
               <span className="text-white text-sm font-black">{cartCount}</span>
@@ -121,8 +142,8 @@ interface MenuPanelProps {
 
 function MenuPanel({ bizName, categories, items, activeCat, onCatChange, search, onSearch, onItemPress, mobileCompact = false }: MenuPanelProps) {
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      <div className="bg-white px-4 pt-12 lg:pt-4 pb-0 shadow-sm sticky top-0 z-20">
+    <div className="flex flex-col h-full bg-gray-50 overflow-hidden">
+      <div className="bg-white px-4 pt-12 lg:pt-4 pb-0 shadow-sm sticky top-0 z-20 shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-black text-gray-900 leading-tight">{bizName ?? "Servezy"}</h1>
@@ -134,7 +155,8 @@ function MenuPanel({ bizName, categories, items, activeCat, onCatChange, search,
         </div>
         <div className="relative mb-3">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input className="w-full h-10 pl-9 pr-9 rounded-xl bg-gray-100 text-sm font-medium outline-none focus:bg-white focus:ring-2 focus:ring-primary-200 transition-all"
+          <input
+            className="w-full h-10 pl-9 pr-9 rounded-xl bg-gray-100 text-sm font-medium outline-none focus:bg-white focus:ring-2 focus:ring-primary-200 transition-all"
             placeholder="Search items…" value={search} onChange={(e) => onSearch(e.target.value)} />
           {search && (
             <button onClick={() => onSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 press">
@@ -155,7 +177,9 @@ function MenuPanel({ bizName, categories, items, activeCat, onCatChange, search,
           <div className="flex flex-col items-center justify-center h-48 text-gray-300">
             <span className="text-5xl mb-3">🍽️</span>
             <p className="font-semibold text-sm">No items found</p>
-            {search && <button onClick={() => onSearch("")} className="mt-2 text-primary-500 text-sm font-semibold press">Clear search</button>}
+            {search && (
+              <button onClick={() => onSearch("")} className="mt-2 text-primary-500 text-sm font-semibold press">Clear search</button>
+            )}
           </div>
         ) : (
           <div className={`grid gap-2 ${mobileCompact ? "grid-cols-2 xs:grid-cols-3" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-4"}`}>
