@@ -12,7 +12,6 @@ const BAR_BIZ = ["cafe", "restaurant", "franchise"];
 
 type StockTab = "raw" | "finished" | "bar";
 
-// ── Raw Material Modal ──────────────────────────────────────────────────────
 function RawMaterialModal({ item, onClose, onSave }: {
   item: Partial<RawMaterial> | null;
   onClose: () => void;
@@ -41,28 +40,28 @@ function RawMaterialModal({ item, onClose, onSave }: {
     <Modal open={!!item} onClose={onClose} title={item?.id ? "Edit Raw Material" : "Add Raw Material"}>
       <div className="px-5 pb-6 pt-2 space-y-4">
         <div>
-          <label className="label">Item Name *</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Item Name *</label>
           <input className="bm-input" placeholder="e.g. Onion, Milk, Bread" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Unit *</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Unit *</label>
             <select className="bm-input" value={unit} onChange={(e) => setUnit(e.target.value)}>
               {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Current Stock</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Current Stock</label>
             <input type="number" className="bm-input" placeholder="0" value={stock} onChange={(e) => setStock(e.target.value)} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Min Stock Alert</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Min Stock Alert</label>
             <input type="number" className="bm-input" placeholder="Optional" value={minStock} onChange={(e) => setMinStock(e.target.value)} />
           </div>
           <div>
-            <label className="label">Cost per unit (₹)</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Cost per unit (₹)</label>
             <input type="number" className="bm-input" placeholder="Optional" value={cost} onChange={(e) => setCost(e.target.value)} />
           </div>
         </div>
@@ -75,7 +74,6 @@ function RawMaterialModal({ item, onClose, onSave }: {
   );
 }
 
-// ── Finished Good Modal ─────────────────────────────────────────────────────
 function FinishedGoodModal({ item, onClose, onSave }: {
   item: Partial<FinishedGood> | null;
   onClose: () => void;
@@ -87,6 +85,7 @@ function FinishedGoodModal({ item, onClose, onSave }: {
   const [cost, setCost] = useState(item?.costPricePaise != null ? String(item.costPricePaise / 100) : "");
   const [selling, setSelling] = useState(item?.sellingPricePaise != null ? String(item.sellingPricePaise / 100) : "");
   const [expiry, setExpiry] = useState(item?.expiryDate ?? "");
+  const today = new Date().toISOString().slice(0, 10);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -103,39 +102,37 @@ function FinishedGoodModal({ item, onClose, onSave }: {
     });
   };
 
-  const today = new Date().toISOString().slice(0, 10);
-
   return (
     <Modal open={!!item} onClose={onClose} title={item?.id ? "Edit Finished Good" : "Add Finished Good"}>
       <div className="px-5 pb-6 pt-2 space-y-4">
         <div>
-          <label className="label">Item Name *</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Item Name *</label>
           <input className="bm-input" placeholder="e.g. Ice Cream, Cake, Cold Drink" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Unit *</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Unit *</label>
             <select className="bm-input" value={unit} onChange={(e) => setUnit(e.target.value)}>
               {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Quantity</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Quantity</label>
             <input type="number" className="bm-input" placeholder="0" value={qty} onChange={(e) => setQty(e.target.value)} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Cost Price (₹)</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Cost Price (₹)</label>
             <input type="number" className="bm-input" placeholder="Optional" value={cost} onChange={(e) => setCost(e.target.value)} />
           </div>
           <div>
-            <label className="label">Selling Price (₹)</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Selling Price (₹)</label>
             <input type="number" className="bm-input" placeholder="Optional" value={selling} onChange={(e) => setSelling(e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="label">Expiry Date (optional)</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Expiry Date <span className="font-normal text-gray-400">optional</span></label>
           <input type="date" className="bm-input" min={today} value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         </div>
         <button onClick={handleSave} disabled={!name.trim()}
@@ -147,7 +144,6 @@ function FinishedGoodModal({ item, onClose, onSave }: {
   );
 }
 
-// ── Bar Item (same as FinishedGood but for bar inventory) ───────────────────
 function BarItemModal({ item, onClose, onSave }: {
   item: Partial<FinishedGood> | null;
   onClose: () => void;
@@ -177,27 +173,27 @@ function BarItemModal({ item, onClose, onSave }: {
     <Modal open={!!item} onClose={onClose} title={item?.id ? "Edit Bar Item" : "Add Bar Item"}>
       <div className="px-5 pb-6 pt-2 space-y-4">
         <div>
-          <label className="label">Item Name *</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Item Name *</label>
           <input className="bm-input" placeholder="e.g. Whisky, Beer, Wine" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Unit</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Unit</label>
             <select className="bm-input" value={unit} onChange={(e) => setUnit(e.target.value)}>
               {["bottle", "can", "litre", "ml", "pack"].map((u) => <option key={u} value={u}>{u}</option>)}
             </select>
           </div>
           <div>
-            <label className="label">Quantity</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1.5">Quantity</label>
             <input type="number" className="bm-input" placeholder="0" value={qty} onChange={(e) => setQty(e.target.value)} />
           </div>
         </div>
         <div>
-          <label className="label">Cost Price (₹)</label>
-          <input type="number" className="bm-input" placeholder="Optional" value={cost} onChange={(e) => setCost(e.target.value)} />
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Cost Price (₹) <span className="font-normal text-gray-400">optional</span></label>
+          <input type="number" className="bm-input" placeholder="0" value={cost} onChange={(e) => setCost(e.target.value)} />
         </div>
         <div>
-          <label className="label">Expiry Date (optional)</label>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Expiry Date <span className="font-normal text-gray-400">optional</span></label>
           <input type="date" className="bm-input" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         </div>
         <button onClick={handleSave} disabled={!name.trim()}
@@ -209,11 +205,11 @@ function BarItemModal({ item, onClose, onSave }: {
   );
 }
 
-// ── Main Page ───────────────────────────────────────────────────────────────
 export default function StockPage() {
   const { state, showToast } = useApp();
   const { session } = state;
   const isOwner = session?.role === "owner";
+  const uid = session?.userId ?? "default";
 
   const ss = session?.stockSettings;
   const barEnabled = ss?.barEnabled ?? false;
@@ -230,16 +226,16 @@ export default function StockPage() {
 
   useEffect(() => {
     import("@/lib/db").then(({ dbGetAllRawMaterials, dbGetAllFinishedGoods, dbGetAllBarItems }) => {
-      dbGetAllRawMaterials().then(setRawMaterials);
-      dbGetAllFinishedGoods().then(setFinishedGoods);
-      dbGetAllBarItems().then(setBarItems);
+      dbGetAllRawMaterials(uid).then(setRawMaterials);
+      dbGetAllFinishedGoods(uid).then(setFinishedGoods);
+      dbGetAllBarItems(uid).then(setBarItems);
     });
-  }, []);
+  }, [uid]);
 
   const handleSaveRaw = async (item: RawMaterial) => {
     const { dbSaveRawMaterial, dbGetAllRawMaterials } = await import("@/lib/db");
-    await dbSaveRawMaterial(item);
-    setRawMaterials(await dbGetAllRawMaterials());
+    await dbSaveRawMaterial(item, uid);
+    setRawMaterials(await dbGetAllRawMaterials(uid));
     showToast(editRaw?.id ? "Updated ✓" : "Added ✓");
     setEditRaw(null);
   };
@@ -247,15 +243,15 @@ export default function StockPage() {
   const handleDeleteRaw = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     const { dbDeleteRawMaterial, dbGetAllRawMaterials } = await import("@/lib/db");
-    await dbDeleteRawMaterial(id);
-    setRawMaterials(await dbGetAllRawMaterials());
+    await dbDeleteRawMaterial(id, uid);
+    setRawMaterials(await dbGetAllRawMaterials(uid));
     showToast("Deleted");
   };
 
   const handleSaveFinished = async (item: FinishedGood) => {
     const { dbSaveFinishedGood, dbGetAllFinishedGoods } = await import("@/lib/db");
-    await dbSaveFinishedGood(item);
-    setFinishedGoods(await dbGetAllFinishedGoods());
+    await dbSaveFinishedGood(item, uid);
+    setFinishedGoods(await dbGetAllFinishedGoods(uid));
     showToast(editFinished?.id ? "Updated ✓" : "Added ✓");
     setEditFinished(null);
   };
@@ -263,15 +259,15 @@ export default function StockPage() {
   const handleDeleteFinished = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     const { dbDeleteFinishedGood, dbGetAllFinishedGoods } = await import("@/lib/db");
-    await dbDeleteFinishedGood(id);
-    setFinishedGoods(await dbGetAllFinishedGoods());
+    await dbDeleteFinishedGood(id, uid);
+    setFinishedGoods(await dbGetAllFinishedGoods(uid));
     showToast("Deleted");
   };
 
   const handleSaveBar = async (item: FinishedGood) => {
     const { dbSaveBarItem, dbGetAllBarItems } = await import("@/lib/db");
-    await dbSaveBarItem(item);
-    setBarItems(await dbGetAllBarItems());
+    await dbSaveBarItem(item, uid);
+    setBarItems(await dbGetAllBarItems(uid));
     showToast(editBar?.id ? "Updated ✓" : "Added ✓");
     setEditBar(null);
   };
@@ -279,8 +275,8 @@ export default function StockPage() {
   const handleDeleteBar = async (id: string) => {
     if (!confirm("Delete this item?")) return;
     const { dbDeleteBarItem, dbGetAllBarItems } = await import("@/lib/db");
-    await dbDeleteBarItem(id);
-    setBarItems(await dbGetAllBarItems());
+    await dbDeleteBarItem(id, uid);
+    setBarItems(await dbGetAllBarItems(uid));
     showToast("Deleted");
   };
 
@@ -310,9 +306,7 @@ export default function StockPage() {
               </button>
             )}
           </div>
-
-          {/* Tab bar */}
-          <div className="flex gap-1 overflow-x-auto no-scrollbar pb-3">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3">
             {TABS.map(({ id, label, Icon }) => (
               <button key={id} onClick={() => setActiveTab(id)}
                 className={`flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-bold transition-all press ${activeTab === id ? "bg-primary-500 text-white shadow-sm" : "bg-gray-100 text-gray-600"}`}>
@@ -322,9 +316,8 @@ export default function StockPage() {
           </div>
         </div>
 
-        <div className="px-4 py-4 space-y-3">
+        <div className="px-4 py-4 space-y-3 max-w-2xl mx-auto w-full">
 
-          {/* ── Raw Materials ── */}
           {activeTab === "raw" && (
             <>
               {rawMaterials.length === 0 ? (
@@ -356,7 +349,6 @@ export default function StockPage() {
             </>
           )}
 
-          {/* ── Finished Goods ── */}
           {activeTab === "finished" && (
             <>
               {finishedGoods.length === 0 ? (
@@ -367,7 +359,7 @@ export default function StockPage() {
                 return (
                   <div key={item.id} className={`bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3 ${expired ? "border-2 border-red-200" : ""}`}>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-bold text-gray-900 truncate">{item.name}</p>
                         {expired && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full shrink-0">Expired</span>}
                         {expiringSoon && !expired && <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full shrink-0">Expiring soon</span>}
@@ -377,7 +369,11 @@ export default function StockPage() {
                         {item.costPricePaise != null && <span className="text-gray-400"> · Cost {fmtRupee(item.costPricePaise)}</span>}
                         {item.sellingPricePaise != null && <span className="text-gray-400"> · Sell {fmtRupee(item.sellingPricePaise)}</span>}
                       </p>
-                      {item.expiryDate && <p className={`text-xs mt-0.5 font-semibold ${expired ? "text-red-500" : expiringSoon ? "text-orange-500" : "text-gray-400"}`}>Expires {item.expiryDate}</p>}
+                      {item.expiryDate && (
+                        <p className={`text-xs mt-0.5 font-semibold ${expired ? "text-red-500" : expiringSoon ? "text-orange-500" : "text-gray-400"}`}>
+                          Expires {item.expiryDate}
+                        </p>
+                      )}
                     </div>
                     {isOwner && (
                       <div className="flex gap-2 shrink-0">
@@ -391,7 +387,6 @@ export default function StockPage() {
             </>
           )}
 
-          {/* ── Bar ── */}
           {activeTab === "bar" && showBarTab && (
             <>
               {barItems.length === 0 ? (
@@ -409,7 +404,11 @@ export default function StockPage() {
                         {item.quantity} {item.unit}
                         {item.costPricePaise != null && <span className="text-gray-400"> · {fmtRupee(item.costPricePaise)}</span>}
                       </p>
-                      {item.expiryDate && <p className={`text-xs mt-0.5 font-semibold ${expired ? "text-red-500" : "text-gray-400"}`}>Expires {item.expiryDate}</p>}
+                      {item.expiryDate && (
+                        <p className={`text-xs mt-0.5 font-semibold ${expired ? "text-red-500" : "text-gray-400"}`}>
+                          Expires {item.expiryDate}
+                        </p>
+                      )}
                     </div>
                     {isOwner && (
                       <div className="flex gap-2 shrink-0">
