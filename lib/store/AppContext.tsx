@@ -169,7 +169,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Each user gets their own DB namespace via userId
         const db = await import("@/lib/db");
         const uid = session.userId;
         const [items, categories, orders] = await Promise.all([
