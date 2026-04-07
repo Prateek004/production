@@ -17,23 +17,31 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
     .filter((c) => c.menuItemId === item.id)
     .reduce((s, c) => s + c.qty, 0);
 
+  // Item needs config modal if it has ANY of these
   const hasOptions =
     (item.sizes && item.sizes.length > 0) ||
     (item.portionEnabled && item.portions && item.portions.length > 0) ||
     (item.addOns && item.addOns.length > 0);
 
-  const isFastAdd = item.fastAdd || !hasOptions;
+  // Only fast-add if explicitly flagged AND has no options
+  const isFastAdd = !hasOptions;
 
   const handlePress = () => {
     if (!item.isAvailable) return;
     if (isFastAdd) {
-      addToCart({ cartId: crypto.randomUUID(), menuItemId: item.id, name: item.name, unitPricePaise: item.pricePaise, qty: 1, selectedAddOns: [] });
+      addToCart({
+        cartId: crypto.randomUUID(),
+        menuItemId: item.id,
+        name: item.name,
+        unitPricePaise: item.pricePaise,
+        qty: 1,
+        selectedAddOns: [],
+      });
     } else {
       onConfigPress(item);
     }
   };
 
-  // Hide cost price for cashiers
   const isOwner = state.session?.role === "owner";
 
   if (compact) {
@@ -49,10 +57,15 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
             </span>
           </div>
           <p className="text-xs font-bold text-gray-900 leading-tight line-clamp-2 min-h-[2rem]">{item.name}</p>
+          {hasOptions && (
+            <p className="text-[9px] text-primary-400 font-semibold mt-0.5">Customisable</p>
+          )}
         </div>
         <div className="flex items-center justify-between px-2.5 pb-2.5 pt-0">
           <span className="text-sm font-black text-gray-900">{fmtRupee(item.pricePaise)}</span>
-          <button onClick={handlePress} disabled={!item.isAvailable}
+          <button
+            onClick={handlePress}
+            disabled={!item.isAvailable}
             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all press ${cartQty > 0 ? "bg-primary-500 text-white" : "bg-gray-100 text-gray-700"}`}>
             {cartQty > 0 ? <><CheckCircle2 size={11} /><span>{cartQty}</span></> : <><Plus size={11} /><span>Add</span></>}
           </button>
@@ -62,13 +75,16 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
   }
 
   return (
-    <button onClick={handlePress} disabled={!item.isAvailable}
+    <button
+      onClick={handlePress}
+      disabled={!item.isAvailable}
       className={`relative w-full p-3 rounded-2xl border-2 text-left transition-all press ${!item.isAvailable ? "opacity-40 border-gray-100 bg-gray-50 cursor-not-allowed" : cartQty > 0 ? "border-primary-300 bg-primary-50" : "border-gray-100 bg-white hover:border-gray-200"}`}>
       <div className="flex items-center gap-1.5 mb-2">
         <span className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center shrink-0 ${item.isVeg ? "border-green-600" : "border-red-500"}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-500"}`} />
         </span>
         {!item.isAvailable && <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Unavailable</span>}
+        {hasOptions && item.isAvailable && <span className="text-[9px] text-primary-400 font-bold ml-auto">Customisable</span>}
       </div>
       <p className="text-sm font-bold text-gray-900 leading-tight line-clamp-2 mb-2 min-h-[2.5rem]">{item.name}</p>
       <div className="flex items-center justify-between">
@@ -79,7 +95,9 @@ export default function MenuItemCard({ item, onConfigPress, compact = false }: P
           )}
         </div>
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${cartQty > 0 ? "bg-primary-500" : "bg-gray-100"}`}>
-          {cartQty > 0 ? <span className="text-white text-xs font-black leading-none">{cartQty}</span> : <Plus size={14} className="text-gray-500" />}
+          {cartQty > 0
+            ? <span className="text-white text-xs font-black leading-none">{cartQty}</span>
+            : <Plus size={14} className="text-gray-500" />}
         </div>
       </div>
     </button>
