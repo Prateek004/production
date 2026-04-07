@@ -5,7 +5,7 @@ import AppShell from "@/components/ui/AppShell";
 import Modal from "@/components/ui/Modal";
 import type { MenuItem, MenuCategory, AddOn } from "@/lib/types";
 import { fmtRupee } from "@/lib/utils";
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FolderPlus } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FolderPlus, X } from "lucide-react";
 
 export default function MenuPage() {
   const { state, upsertMenuItem, deleteMenuItem, upsertCategory, deleteCategory, showToast } = useApp();
@@ -139,7 +139,12 @@ export default function MenuPage() {
   );
 }
 
-function ItemEditModal({ item, categories, onClose, onSave }: { item: Partial<MenuItem> | null; categories: MenuCategory[]; onClose: () => void; onSave: (i: MenuItem) => void }) {
+function ItemEditModal({ item, categories, onClose, onSave }: {
+  item: Partial<MenuItem> | null;
+  categories: MenuCategory[];
+  onClose: () => void;
+  onSave: (i: MenuItem) => void;
+}) {
   const [name, setName] = useState(item?.name ?? "");
   const [catId, setCatId] = useState(item?.categoryId ?? categories[0]?.id ?? "");
   const [priceRupee, setPriceRupee] = useState(item?.pricePaise ? String(item.pricePaise / 100) : "");
@@ -156,8 +161,13 @@ function ItemEditModal({ item, categories, onClose, onSave }: { item: Partial<Me
 
   const addAddOn = () => {
     if (!aoName.trim()) return;
-    setAddOns((prev) => [...prev, { id: crypto.randomUUID(), name: aoName.trim(), pricePaise: Math.round(Number(aoPrice) * 100) || 0 }]);
-    setAoName(""); setAoPrice("");
+    setAddOns((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      name: aoName.trim(),
+      pricePaise: Math.round(Number(aoPrice) * 100) || 0,
+    }]);
+    setAoName("");
+    setAoPrice("");
   };
 
   const handleSave = () => {
@@ -168,7 +178,8 @@ function ItemEditModal({ item, categories, onClose, onSave }: { item: Partial<Me
     ] : item?.portions;
     onSave({
       id: item?.id ?? crypto.randomUUID(),
-      name: name.trim(), categoryId: catId,
+      name: name.trim(),
+      categoryId: catId,
       pricePaise: Math.round(Number(priceRupee) * 100) || 0,
       costPricePaise: costRupee ? Math.round(Number(costRupee) * 100) : undefined,
       isVeg, isAvailable, portionEnabled, portions, addOns,
@@ -178,70 +189,166 @@ function ItemEditModal({ item, categories, onClose, onSave }: { item: Partial<Me
 
   return (
     <Modal open={!!item} onClose={onClose} title={isNew ? "Add Item" : "Edit Item"} fullScreen>
-      <div className="px-5 pb-10 pt-2 space-y-4">
-        <div><label className="block text-xs font-bold text-gray-500 mb-1.5">Item Name *</label>
-          <input className="bm-input" placeholder="e.g. Masala Chai" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
-        <div><label className="block text-xs font-bold text-gray-500 mb-1.5">Category *</label>
+      <div className="px-4 pb-10 pt-2 space-y-4">
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Item Name *</label>
+          <input
+            className="bm-input"
+            placeholder="e.g. Masala Chai"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Category *</label>
           <select className="bm-input" value={catId} onChange={(e) => setCatId(e.target.value)}>
             <option value="">Select category</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select></div>
-        <div className="flex gap-3">
-          <div className="flex-1"><label className="block text-xs font-bold text-gray-500 mb-1.5">Selling Price (₹) *</label>
-            <input type="number" className="bm-input" placeholder="0" value={priceRupee} onChange={(e) => setPriceRupee(e.target.value)} /></div>
-          <div className="flex-1"><label className="block text-xs font-bold text-gray-500 mb-1.5">Cost Price (₹)</label>
-            <input type="number" className="bm-input" placeholder="0" value={costRupee} onChange={(e) => setCostRupee(e.target.value)} /></div>
+          </select>
         </div>
-        <div><label className="block text-xs font-bold text-gray-500 mb-1.5">Type</label>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Selling Price (₹) *</label>
+          <input
+            type="number"
+            className="bm-input"
+            placeholder="0"
+            value={priceRupee}
+            onChange={(e) => setPriceRupee(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">
+            Cost Price (₹) <span className="font-normal text-gray-400">optional</span>
+          </label>
+          <input
+            type="number"
+            className="bm-input"
+            placeholder="0"
+            value={costRupee}
+            onChange={(e) => setCostRupee(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Type</label>
           <div className="flex gap-2">
-            <button onClick={() => setIsVeg(true)} className={`flex-1 h-11 rounded-xl border-2 font-bold text-sm press transition-all ${isVeg ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 text-gray-500"}`}>🟢 Veg</button>
-            <button onClick={() => setIsVeg(false)} className={`flex-1 h-11 rounded-xl border-2 font-bold text-sm press transition-all ${!isVeg ? "border-red-500 bg-red-50 text-red-600" : "border-gray-200 text-gray-500"}`}>🔴 Non-Veg</button>
-          </div></div>
+            <button onClick={() => setIsVeg(true)}
+              className={`flex-1 h-11 rounded-xl border-2 font-bold text-sm press transition-all ${isVeg ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 text-gray-500"}`}>
+              🟢 Veg
+            </button>
+            <button onClick={() => setIsVeg(false)}
+              className={`flex-1 h-11 rounded-xl border-2 font-bold text-sm press transition-all ${!isVeg ? "border-red-500 bg-red-50 text-red-600" : "border-gray-200 text-gray-500"}`}>
+              🔴 Non-Veg
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-3">
           <Toggle label="Available" value={isAvailable} onChange={setIsAvailable} />
           <Toggle label="Portion pricing (Half / Full)" value={portionEnabled} onChange={setPortionEnabled} />
         </div>
+
         {portionEnabled && (
           <div className="flex gap-3">
-            <div className="flex-1"><label className="block text-[11px] text-gray-400 mb-1">Half (₹)</label>
-              <input type="number" className="bm-input" placeholder="0" value={halfPrice} onChange={(e) => setHalfPrice(e.target.value)} /></div>
-            <div className="flex-1"><label className="block text-[11px] text-gray-400 mb-1">Full (₹)</label>
-              <input type="number" className="bm-input" placeholder="0" value={fullPrice} onChange={(e) => setFullPrice(e.target.value)} /></div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-500 mb-1.5">Half (₹)</label>
+              <input type="number" className="bm-input" placeholder="0" value={halfPrice} onChange={(e) => setHalfPrice(e.target.value)} />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-gray-500 mb-1.5">Full (₹)</label>
+              <input type="number" className="bm-input" placeholder="0" value={fullPrice} onChange={(e) => setFullPrice(e.target.value)} />
+            </div>
           </div>
         )}
-        <div><label className="block text-xs font-bold text-gray-500 mb-2">Add-ons</label>
-          <div className="space-y-2 mb-2">
-            {addOns.map((ao) => (
-              <div key={ao.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
-                <span className="flex-1 text-sm font-semibold text-gray-800">{ao.name}</span>
-                {ao.pricePaise > 0 && <span className="text-xs text-gray-400">+{fmtRupee(ao.pricePaise)}</span>}
-                <button onClick={() => setAddOns((p) => p.filter((a) => a.id !== ao.id))} className="text-red-400 press"><Trash2 size={13} /></button>
-              </div>
-            ))}
+
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-2">Add-ons</label>
+
+          {addOns.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {addOns.map((ao) => (
+                <div key={ao.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
+                  <span className="flex-1 text-sm font-semibold text-gray-800">{ao.name}</span>
+                  {ao.pricePaise > 0 && (
+                    <span className="text-xs text-gray-400 shrink-0">+{fmtRupee(ao.pricePaise)}</span>
+                  )}
+                  <button
+                    onClick={() => setAddOns((p) => p.filter((a) => a.id !== ao.id))}
+                    className="text-gray-300 hover:text-red-400 press shrink-0">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <input
+              className="bm-input"
+              placeholder="Add-on name e.g. Extra Cheese"
+              value={aoName}
+              onChange={(e) => setAoName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addAddOn()}
+            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                className="bm-input flex-1"
+                placeholder="Price ₹ (0 = free)"
+                value={aoPrice}
+                onChange={(e) => setAoPrice(e.target.value)}
+              />
+              <button
+                onClick={addAddOn}
+                disabled={!aoName.trim()}
+                className="px-5 h-11 rounded-xl bg-primary-500 text-white font-bold press shadow-sm disabled:opacity-40 shrink-0">
+                Add
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <input className="bm-input flex-1" placeholder="Add-on name" value={aoName} onChange={(e) => setAoName(e.target.value)} />
-            <input type="number" className="bm-input w-20" placeholder="₹" value={aoPrice} onChange={(e) => setAoPrice(e.target.value)} />
-            <button onClick={addAddOn} className="px-3 rounded-xl bg-primary-500 text-white font-bold press shadow-sm"><Plus size={16} /></button>
-          </div></div>
-        <button onClick={handleSave} disabled={!name.trim() || !catId} className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md mt-2">
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={!name.trim() || !catId}
+          className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md">
           {isNew ? "Add Item" : "Save Changes"}
         </button>
+
       </div>
     </Modal>
   );
 }
 
-function CatEditModal({ cat, onClose, onSave }: { cat: Partial<MenuCategory> | null; onClose: () => void; onSave: (c: MenuCategory) => void }) {
+function CatEditModal({ cat, onClose, onSave }: {
+  cat: Partial<MenuCategory> | null;
+  onClose: () => void;
+  onSave: (c: MenuCategory) => void;
+}) {
   const [name, setName] = useState(cat?.name ?? "");
   const isNew = !cat?.id;
   return (
     <Modal open={!!cat} onClose={onClose} title={isNew ? "Add Category" : "Edit Category"}>
       <div className="px-5 pb-6 pt-2 space-y-4">
-        <div><label className="block text-xs font-bold text-gray-500 mb-1.5">Category Name</label>
-          <input className="bm-input" placeholder="e.g. Main Course" value={name} onChange={(e) => setName(e.target.value)} autoFocus /></div>
-        <button onClick={() => onSave({ id: cat?.id ?? crypto.randomUUID(), name: name.trim(), sortOrder: cat?.sortOrder ?? 0 })}
-          disabled={!name.trim()} className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md">
+        <div>
+          <label className="block text-xs font-bold text-gray-500 mb-1.5">Category Name</label>
+          <input
+            className="bm-input"
+            placeholder="e.g. Main Course"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <button
+          onClick={() => onSave({ id: cat?.id ?? crypto.randomUUID(), name: name.trim(), sortOrder: cat?.sortOrder ?? 0 })}
+          disabled={!name.trim()}
+          className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md">
           {isNew ? "Add Category" : "Save"}
         </button>
       </div>
@@ -253,10 +360,11 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
   return (
     <div className="flex items-center justify-between">
       <span className="text-sm font-semibold text-gray-700">{label}</span>
-      <button onClick={() => onChange(!value)} className={`w-11 h-6 rounded-full relative transition-colors press ${value ? "bg-primary-500" : "bg-gray-200"}`}>
+      <button
+        onClick={() => onChange(!value)}
+        className={`w-11 h-6 rounded-full relative transition-colors press ${value ? "bg-primary-500" : "bg-gray-200"}`}>
         <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${value ? "left-6" : "left-1"}`} />
       </button>
     </div>
   );
 }
-
