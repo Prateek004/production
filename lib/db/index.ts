@@ -1,14 +1,15 @@
 import Dexie, { type Table } from "dexie";
 import type { Order, MenuItem, MenuCategory, RawMaterial, FinishedGood } from "@/lib/types";
 
-// One DB, tables store records with userId prefix on id for isolation
+type WithUid<T> = T & { _uid: string };
+
 class ServezyDB extends Dexie {
-  orders!: Table<Order & { _uid: string }, string>;
-  menuItems!: Table<MenuItem & { _uid: string }, string>;
-  categories!: Table<MenuCategory & { _uid: string }, string>;
-  rawMaterials!: Table<RawMaterial & { _uid: string }, string>;
-  finishedGoods!: Table<FinishedGood & { _uid: string }, string>;
-  barItems!: Table<FinishedGood & { _uid: string }, string>;
+  orders!: Table<WithUid<Order>, string>;
+  menuItems!: Table<WithUid<MenuItem>, string>;
+  categories!: Table<WithUid<MenuCategory>, string>;
+  rawMaterials!: Table<WithUid<RawMaterial>, string>;
+  finishedGoods!: Table<WithUid<FinishedGood>, string>;
+  barItems!: Table<WithUid<FinishedGood>, string>;
 
   constructor() {
     super("servezy_db");
@@ -32,17 +33,18 @@ function getDB(): ServezyDB {
   return _db;
 }
 
-// ── Orders ───────────────────────────────────────────────────────────────────
+// ── Orders ────────────────────────────────────────────────────────────────────
 export async function dbSaveOrder(order: Order, uid: string): Promise<void> {
   await getDB().orders.put({ ...order, _uid: uid });
 }
 export async function dbGetAllOrders(uid: string): Promise<Order[]> {
-  return (await getDB().orders.where("_uid").equals(uid).reverse().sortBy("createdAt")) as Order[];
+  const rows = await getDB().orders.where("_uid").equals(uid).reverse().sortBy("createdAt");
+  return rows as unknown as Order[];
 }
 export async function dbGetTodaysOrders(uid: string): Promise<Order[]> {
   const today = new Date().toISOString().slice(0, 10);
   const all = await getDB().orders.where("_uid").equals(uid).toArray();
-  return all.filter((o) => o.createdAt.startsWith(today)) as Order[];
+  return all.filter((o) => o.createdAt.startsWith(today)) as unknown as Order[];
 }
 export async function dbGetPendingOrders(): Promise<Order[]> {
   return getDB().orders.where("syncStatus").anyOf("pending", "failed").toArray() as unknown as Order[];
