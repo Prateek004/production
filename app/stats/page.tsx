@@ -4,15 +4,16 @@ import { useApp } from "@/lib/store/AppContext";
 import AppShell from "@/components/ui/AppShell";
 import { fmtRupee, todayStr, PAY_LABEL } from "@/lib/utils";
 import type { Order } from "@/lib/types";
-import { TrendingUp, Banknote, ShoppingBag, CreditCard, Smartphone } from "lucide-react";
+import { TrendingUp, Banknote, ShoppingBag, Smartphone } from "lucide-react";
 
 export default function StatsPage() {
   const { state } = useApp();
+  const uid = state.session?.userId ?? "default";
   const [allOrders, setAllOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    import("@/lib/db").then(({ dbGetAllOrders }) => dbGetAllOrders().then(setAllOrders));
-  }, [state.orders]);
+    import("@/lib/db").then(({ dbGetAllOrders }) => dbGetAllOrders(uid).then(setAllOrders));
+  }, [state.orders, uid]);
 
   const today = todayStr();
   const todayOrders = allOrders.filter((o) => o.createdAt.startsWith(today));
@@ -20,7 +21,7 @@ export default function StatsPage() {
   const totalSales = allOrders.reduce((s, o) => s + o.totalPaise, 0);
   const avgOrder = allOrders.length > 0 ? Math.round(totalSales / allOrders.length) : 0;
 
-  const byMethod = allOrders.reduce<Record<string, number>>((acc: Record<string, number>, o: Order) => {
+  const byMethod = allOrders.reduce<Record<string, number>>((acc, o) => {
     acc[o.paymentMethod] = (acc[o.paymentMethod] ?? 0) + o.totalPaise;
     return acc;
   }, {});
@@ -42,7 +43,7 @@ export default function StatsPage() {
           <p className="text-xs text-gray-400 mt-0.5">Business performance</p>
         </div>
 
-        <div className="px-4 py-4 space-y-4">
+        <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto w-full">
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-primary-500 rounded-2xl p-4 text-white col-span-2">
               <p className="text-xs font-bold text-primary-100 mb-1">Today&apos;s Revenue</p>
@@ -64,12 +65,12 @@ export default function StatsPage() {
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <p className="font-bold text-gray-900 mb-3">Payment Methods</p>
             <div className="space-y-2">
-              {(Object.entries(byMethod) as [string, number][]).map(([m, paise]) => (
+              {Object.entries(byMethod).map(([m, paise]) => (
                 <div key={m} className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                    {m === "cash"  && <Banknote   size={15} className="text-gray-600" />}
-                    {m === "upi"   && <Smartphone size={15} className="text-blue-500" />}
-                    {m === "split" && <CreditCard size={15} className="text-purple-500" />}
+                    {m === "cash" && <Banknote size={15} className="text-gray-600" />}
+                    {m === "upi" && <Smartphone size={15} className="text-blue-500" />}
+                    {m === "split" && <TrendingUp size={15} className="text-purple-500" />}
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between text-sm mb-1">
@@ -77,12 +78,15 @@ export default function StatsPage() {
                       <span className="font-bold text-gray-900">{fmtRupee(paise)}</span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary-500 rounded-full" style={{ width: `${totalSales > 0 ? (paise / totalSales) * 100 : 0}%` }} />
+                      <div className="h-full bg-primary-500 rounded-full"
+                        style={{ width: `${totalSales > 0 ? (paise / totalSales) * 100 : 0}%` }} />
                     </div>
                   </div>
                 </div>
               ))}
-              {Object.keys(byMethod).length === 0 && <p className="text-sm text-gray-400 text-center py-4">No data yet</p>}
+              {Object.keys(byMethod).length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No data yet</p>
+              )}
             </div>
           </div>
 
