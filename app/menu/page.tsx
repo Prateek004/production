@@ -51,7 +51,7 @@ export default function MenuPage() {
   return (
     <AppShell>
       <div className="flex flex-col min-h-screen bg-gray-50">
-        <div className="bg-white px-4 pt-12 pb-4 shadow-sm">
+        <div className="bg-white px-4 pt-12 lg:pt-5 pb-4 shadow-sm">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-black text-gray-900">Menu Editor</h1>
             {isOwner && (
@@ -67,7 +67,7 @@ export default function MenuPage() {
           </div>
         </div>
 
-        <div className="px-4 py-4 space-y-3">
+        <div className="px-4 py-4 space-y-3 max-w-2xl mx-auto w-full">
           {categories.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-300">
               <span className="text-5xl mb-3">🍽️</span>
@@ -178,8 +178,7 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
     ] : item?.portions;
     onSave({
       id: item?.id ?? crypto.randomUUID(),
-      name: name.trim(),
-      categoryId: catId,
+      name: name.trim(), categoryId: catId,
       pricePaise: Math.round(Number(priceRupee) * 100) || 0,
       costPricePaise: costRupee ? Math.round(Number(costRupee) * 100) : undefined,
       isVeg, isAvailable, portionEnabled, portions, addOns,
@@ -189,17 +188,12 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
 
   return (
     <Modal open={!!item} onClose={onClose} title={isNew ? "Add Item" : "Edit Item"} fullScreen>
-      <div className="px-4 pb-10 pt-2 space-y-4">
+      <div className="px-4 pb-10 pt-2 space-y-4 max-w-lg mx-auto w-full">
 
         <div>
           <label className="block text-xs font-bold text-gray-500 mb-1.5">Item Name *</label>
-          <input
-            className="bm-input"
-            placeholder="e.g. Masala Chai"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
+          <input className="bm-input" placeholder="e.g. Masala Chai" value={name}
+            onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
 
         <div>
@@ -212,26 +206,16 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
 
         <div>
           <label className="block text-xs font-bold text-gray-500 mb-1.5">Selling Price (₹) *</label>
-          <input
-            type="number"
-            className="bm-input"
-            placeholder="0"
-            value={priceRupee}
-            onChange={(e) => setPriceRupee(e.target.value)}
-          />
+          <input type="number" className="bm-input" placeholder="0" value={priceRupee}
+            onChange={(e) => setPriceRupee(e.target.value)} />
         </div>
 
         <div>
           <label className="block text-xs font-bold text-gray-500 mb-1.5">
             Cost Price (₹) <span className="font-normal text-gray-400">optional</span>
           </label>
-          <input
-            type="number"
-            className="bm-input"
-            placeholder="0"
-            value={costRupee}
-            onChange={(e) => setCostRupee(e.target.value)}
-          />
+          <input type="number" className="bm-input" placeholder="0" value={costRupee}
+            onChange={(e) => setCostRupee(e.target.value)} />
         </div>
 
         <div>
@@ -268,17 +252,13 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
 
         <div>
           <label className="block text-xs font-bold text-gray-500 mb-2">Add-ons</label>
-
           {addOns.length > 0 && (
             <div className="space-y-2 mb-3">
               {addOns.map((ao) => (
                 <div key={ao.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5">
                   <span className="flex-1 text-sm font-semibold text-gray-800">{ao.name}</span>
-                  {ao.pricePaise > 0 && (
-                    <span className="text-xs text-gray-400 shrink-0">+{fmtRupee(ao.pricePaise)}</span>
-                  )}
-                  <button
-                    onClick={() => setAddOns((p) => p.filter((a) => a.id !== ao.id))}
+                  {ao.pricePaise > 0 && <span className="text-xs text-gray-400 shrink-0">+{fmtRupee(ao.pricePaise)}</span>}
+                  <button onClick={() => setAddOns((p) => p.filter((a) => a.id !== ao.id))}
                     className="text-gray-300 hover:text-red-400 press shrink-0">
                     <X size={14} />
                   </button>
@@ -286,7 +266,6 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
               ))}
             </div>
           )}
-
           <div className="space-y-2">
             <input
               className="bm-input"
@@ -296,16 +275,9 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
               onKeyDown={(e) => e.key === "Enter" && addAddOn()}
             />
             <div className="flex gap-2">
-              <input
-                type="number"
-                className="bm-input flex-1"
-                placeholder="Price ₹ (0 = free)"
-                value={aoPrice}
-                onChange={(e) => setAoPrice(e.target.value)}
-              />
-              <button
-                onClick={addAddOn}
-                disabled={!aoName.trim()}
+              <input type="number" className="bm-input flex-1" placeholder="Price ₹ (0 = free)"
+                value={aoPrice} onChange={(e) => setAoPrice(e.target.value)} />
+              <button onClick={addAddOn} disabled={!aoName.trim()}
                 className="px-5 h-11 rounded-xl bg-primary-500 text-white font-bold press shadow-sm disabled:opacity-40 shrink-0">
                 Add
               </button>
@@ -313,13 +285,10 @@ function ItemEditModal({ item, categories, onClose, onSave }: {
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={!name.trim() || !catId}
+        <button onClick={handleSave} disabled={!name.trim() || !catId}
           className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md">
           {isNew ? "Add Item" : "Save Changes"}
         </button>
-
       </div>
     </Modal>
   );
@@ -337,18 +306,11 @@ function CatEditModal({ cat, onClose, onSave }: {
       <div className="px-5 pb-6 pt-2 space-y-4">
         <div>
           <label className="block text-xs font-bold text-gray-500 mb-1.5">Category Name</label>
-          <input
-            className="bm-input"
-            placeholder="e.g. Main Course"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
+          <input className="bm-input" placeholder="e.g. Main Course" value={name}
+            onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
-        <button
-          onClick={() => onSave({ id: cat?.id ?? crypto.randomUUID(), name: name.trim(), sortOrder: cat?.sortOrder ?? 0 })}
-          disabled={!name.trim()}
-          className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md">
+        <button onClick={() => onSave({ id: cat?.id ?? crypto.randomUUID(), name: name.trim(), sortOrder: cat?.sortOrder ?? 0 })}
+          disabled={!name.trim()} className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold disabled:opacity-40 press shadow-md">
           {isNew ? "Add Category" : "Save"}
         </button>
       </div>
@@ -360,8 +322,7 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
   return (
     <div className="flex items-center justify-between">
       <span className="text-sm font-semibold text-gray-700">{label}</span>
-      <button
-        onClick={() => onChange(!value)}
+      <button onClick={() => onChange(!value)}
         className={`w-11 h-6 rounded-full relative transition-colors press ${value ? "bg-primary-500" : "bg-gray-200"}`}>
         <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${value ? "left-6" : "left-1"}`} />
       </button>
