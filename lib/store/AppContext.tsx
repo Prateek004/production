@@ -73,7 +73,6 @@ function reducer(state: AppState, action: Action): AppState {
         incoming.selectedPortion ?? "",
         incoming.selectedAddOns.map((a) => a.id).sort().join(","),
       ].join("|");
-
       const existingIdx = state.cart.findIndex((c) => {
         const k = [
           c.menuItemId,
@@ -83,7 +82,6 @@ function reducer(state: AppState, action: Action): AppState {
         ].join("|");
         return k === key;
       });
-
       if (existingIdx !== -1) {
         const newCart = state.cart.map((c, i) =>
           i === existingIdx ? { ...c, qty: c.qty + incoming.qty } : c
@@ -136,7 +134,7 @@ interface AppContextValue {
   setSession: (s: UserSession | null) => void;
   setServiceMode: (m: ServiceMode) => void;
   setTableNumber: (n: number | undefined) => void;
-  loadMenuFromTemplate: (businessType: string) => Promise<void>;
+  loadMenuFromTemplate: (businessType: string, userId: string) => Promise<void>;
   addToCart: (item: CartItem) => void;
   updateCartQty: (cartId: string, qty: number) => void;
   removeFromCart: (cartId: string) => void;
@@ -164,17 +162,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async function init() {
       try {
         const raw = localStorage.getItem("sz_session");
-        const session = raw ? JSON.parse(raw) : null;
+        const session: UserSession | null = raw ? JSON.parse(raw) : null;
+
+        if (!session) {
+          dispatch({ type: "INIT_DONE", session: null, items: [], categories: [], orders: [] });
+          return;
+        }
+
+        // Each user gets their own DB namespace via userId
         const db = await import("@/lib/db");
+        const uid = session.userId;
         const [items, categories, orders] = await Promise.all([
-          db.dbGetAllMenuItems(),
-          db.dbGetAllCategories(),
-          db.dbGetTodaysOrders(),
+          db.dbGetAllMenuItems(uid),
+          db.dbGetAllCategories(uid),
+          db.dbGetTodaysOrders(uid),
         ]);
         dispatch({ type: "INIT_DONE", session, items, categories, orders });
-        if (session) {
-          import("@/lib/supabase/sync").then(({ backgroundSync }) => backgroundSync()).catch(() => {});
-        }
+        import("@/lib/supabase/sync").then(({ backgroundSync }) => backgroundSync()).catch(() => {});
       } catch {
         dispatch({ type: "INIT_DONE", session: null, items: [], categories: [], orders: [] });
       }
@@ -196,14 +200,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_TABLE", tableNumber });
   }, []);
 
-  const loadMenuFromTemplate = useCallback(async (businessType: string) => {
+  const loadMenuFromTemplate = useCallback(async (businessType: string, userId: string) => {
     const db = await import("@/lib/db");
-    const existing = await db.dbGetAllMenuItems();
+    const existing = await db.dbGetAllMenuItems(userId);
     if (existing.length > 0) return;
     const key = businessType as keyof typeof MENU_TEMPLATES;
     const template = MENU_TEMPLATES[key] ?? MENU_TEMPLATES["restaurant"];
-    await db.dbBulkSaveCategories(template.categories);
-    await db.dbBulkSaveMenuItems(template.items);
+    await db.dbBulkSaveCategories(template.categories, userId);
+    await db.dbBulkSaveMenuItems(template.items, userId);
     dispatch({ type: "SET_MENU", items: template.items, categories: template.categories });
   }, []);
 
@@ -256,8 +260,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       syncStatus: "pending",
     };
 
+    const uid = state.session?.userId ?? "default";
     const db = await import("@/lib/db");
-    await db.dbSaveOrder(order);
+    await db.dbSaveOrder(order, uid);
     dispatch({ type: "ORDER_ADD", payload: order });
     dispatch({ type: "CART_CLEAR" });
 
@@ -266,28 +271,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.cart, state.session, state.serviceMode, state.tableNumber]);
 
   const upsertMenuItem = useCallback(async (item: MenuItem) => {
+    const uid = state.session?.userId ?? "default";
     const db = await import("@/lib/db");
-    await db.dbSaveMenuItem(item);
+    await db.dbSaveMenuItem(item, uid);
     dispatch({ type: "MENU_ITEM_UPSERT", payload: item });
-  }, []);
+  }, [state.session]);
 
   const deleteMenuItem = useCallback(async (id: string) => {
+    const uid = state.session?.userId ?? "default";
     const db = await import("@/lib/db");
-    await db.dbDeleteMenuItem(id);
+    await db.dbDeleteMenuItem(id, uid);
     dispatch({ type: "MENU_ITEM_DELETE", id });
-  }, []);
+  }, [state.session]);
 
   const upsertCategory = useCallback(async (cat: MenuCategory) => {
+    const uid = state.session?.userId ?? "default";
     const db = await import("@/lib/db");
-    await db.dbSaveCategory(cat);
+    await db.dbSaveCategory(cat, uid);
     dispatch({ type: "CATEGORY_UPSERT", payload: cat });
-  }, []);
+  }, [state.session]);
 
   const deleteCategory = useCallback(async (id: string) => {
+    const uid = state.session?.userId ?? "default";
     const db = await import("@/lib/db");
-    await db.dbDeleteCategory(id);
+    await db.dbDeleteCategory(id, uid);
     dispatch({ type: "CATEGORY_DELETE", id });
-  }, []);
+  }, [state.session]);
 
   const showToast = useCallback((message: string, type: Toast["type"] = "success") => {
     const id = crypto.randomUUID();
