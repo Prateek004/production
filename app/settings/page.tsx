@@ -6,11 +6,12 @@ import AppShell from "@/components/ui/AppShell";
 import { Cloud, CloudOff, LogOut, Trash2 } from "lucide-react";
 import { isSupabaseEnabled } from "@/lib/supabase/client";
 import { signOut } from "@/lib/supabase/auth";
+import { HIDE_FRANCHISE } from "@/lib/utils";
 import type { StockSettings } from "@/lib/types";
 
 const GST_OPTIONS = [0, 5, 12, 18];
 
-const BAR_BIZ_TYPES = ["cafe", "restaurant", "franchise"];
+const BAR_BIZ_TYPES = ["cafe", "restaurant", "franchise"].filter((t) => !HIDE_FRANCHISE || t !== "franchise");
 
 export default function SettingsPage() {
   const { state, setSession, showToast } = useApp();
