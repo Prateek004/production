@@ -1,3 +1,7 @@
+// ── Feature flags ────────────────────────────────────────────
+// Set to false when franchise is ready to launch (Phase 2)
+export const HIDE_FRANCHISE = true;
+
 export const toP = (rupee: number): number => Math.round(rupee * 100);
 export const toR = (paise: number): number => paise / 100;
 
