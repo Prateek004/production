@@ -3,12 +3,12 @@ import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/store/AppContext";
 import AppShell from "@/components/ui/AppShell";
 import Modal from "@/components/ui/Modal";
-import { fmtRupee } from "@/lib/utils";
+import { fmtRupee, HIDE_FRANCHISE } from "@/lib/utils";
 import type { RawMaterial, FinishedGood } from "@/lib/types";
 import { Plus, Pencil, Trash2, AlertTriangle, Package, Boxes, Wine } from "lucide-react";
 
 const UNITS = ["kg", "g", "litre", "ml", "piece", "dozen", "bottle", "pack", "box"];
-const BAR_BIZ = ["cafe", "restaurant", "franchise"];
+const BAR_BIZ = ["cafe", "restaurant", "franchise"].filter((t) => !HIDE_FRANCHISE || t !== "franchise");
 
 type StockTab = "raw" | "finished" | "bar";
 
