@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { User, Lock, Eye, EyeOff, Loader2, Store, ChevronDown } from "lucide-react";
 import { signIn, signUp } from "@/lib/supabase/auth";
 import { useApp } from "@/lib/store/AppContext";
+import { HIDE_FRANCHISE } from "@/lib/utils";
 import type { UserRole, BusinessType } from "@/lib/types";
 
 type Mode = "signin" | "signup";
@@ -16,7 +17,7 @@ const BIZ_TYPES = [
   { value: "kiosk", label: "Kiosk" },
   { value: "bakery", label: "Bakery" },
   { value: "franchise", label: "Franchise" },
-];
+].filter((b) => !(HIDE_FRANCHISE && b.value === "franchise"));
 
 export default function AuthPage() {
   const router = useRouter();
