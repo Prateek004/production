@@ -14,9 +14,22 @@ const NAV = [
   { href: "/settings", label: "Settings",  Icon: Settings        },
 ];
 
+function VynnMark() {
+  return (
+    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-md"
+      style={{ background: "#B24B2F" }}>
+      <svg viewBox="0 0 26 26" fill="none" width={20} height={20}>
+        <polygon points="13,2 22,7 22,19 13,24 4,19 4,7" stroke="white" strokeWidth="1.3" fill="none"/>
+        <polygon points="13,7 19,10.5 19,17.5 13,21 7,17.5 7,10.5" stroke="white" strokeWidth="1" fill="none"/>
+        <line x1="10" y1="3.5" x2="16.5" y2="22.5" stroke="white" strokeWidth="1.5"/>
+      </svg>
+    </div>
+  );
+}
+
 export default function DesktopSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
   const { state, setSession } = useApp();
 
   const handleLogout = async () => {
@@ -26,23 +39,34 @@ export default function DesktopSidebar() {
   };
 
   return (
-    <aside className="hidden lg:flex flex-col w-16 xl:w-52 h-screen bg-white border-r border-gray-100 shrink-0">
-      <div className="flex items-center gap-3 px-3 xl:px-4 py-5 border-b border-gray-100">
-        <div className="w-9 h-9 rounded-2xl bg-primary-500 flex items-center justify-center shrink-0 shadow-md">
-          <span className="text-white font-black text-base">S</span>
-        </div>
+    <aside className="hidden lg:flex flex-col w-16 xl:w-56 h-screen shrink-0"
+      style={{ background: "#FFFCF8", borderRight: "1px solid rgba(178,75,47,0.10)" }}>
+
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-3 xl:px-4 py-5"
+        style={{ borderBottom: "1px solid rgba(178,75,47,0.10)" }}>
+        <VynnMark />
         <div className="hidden xl:block min-w-0">
-          <p className="font-black text-gray-900 text-sm truncate">{state.session?.businessName ?? "Servezy"}</p>
-          <p className="text-[10px] text-gray-400 font-semibold capitalize">{state.session?.role}</p>
+          <p className="font-black text-sm tracking-widest" style={{ color: "#B24B2F", fontFamily: "serif", letterSpacing: "0.14em" }}>
+            VYNN
+          </p>
+          <p className="text-[10px] font-semibold truncate" style={{ color: "#8C6E58" }}>
+            {state.session?.businessName ?? "Smart POS"}
+          </p>
         </div>
       </div>
 
-      <nav className="flex-1 py-4 space-y-1 px-2">
+      {/* Nav */}
+      <nav className="flex-1 py-4 space-y-0.5 px-2">
         {NAV.map(({ href, label, Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link key={href} href={href}
-              className={`flex items-center gap-3 px-2 xl:px-3 py-2.5 rounded-xl transition-all press ${active ? "bg-primary-50 text-primary-600" : "text-gray-500 hover:bg-gray-50"}`}>
+              className="flex items-center gap-3 px-2 xl:px-3 py-2.5 rounded-xl transition-all press"
+              style={{
+                background: active ? "rgba(178,75,47,0.08)" : "transparent",
+                color:      active ? "#B24B2F" : "#8C6E58",
+              }}>
               <Icon size={20} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
               <span className="hidden xl:block text-sm font-bold">{label}</span>
             </Link>
@@ -50,9 +74,11 @@ export default function DesktopSidebar() {
         })}
       </nav>
 
-      <div className="p-2 border-t border-gray-100">
+      {/* Sign out */}
+      <div className="p-2" style={{ borderTop: "1px solid rgba(178,75,47,0.10)" }}>
         <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-2 xl:px-3 py-2.5 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all press">
+          className="w-full flex items-center gap-3 px-2 xl:px-3 py-2.5 rounded-xl transition-all press"
+          style={{ color: "#8C6E58" }}>
           <LogOut size={20} className="shrink-0" />
           <span className="hidden xl:block text-sm font-bold">Sign Out</span>
         </button>
