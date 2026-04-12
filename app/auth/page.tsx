@@ -11,27 +11,41 @@ import type { UserRole, BusinessType } from "@/lib/types";
 type Mode = "signin" | "signup";
 
 const BIZ_TYPES = [
-  { value: "cafe", label: "Cafe" },
+  { value: "cafe",       label: "Cafe"       },
   { value: "restaurant", label: "Restaurant" },
   { value: "food_truck", label: "Food Truck" },
-  { value: "kiosk", label: "Kiosk" },
-  { value: "bakery", label: "Bakery" },
-  { value: "franchise", label: "Franchise" },
+  { value: "kiosk",      label: "Kiosk"      },
+  { value: "bakery",     label: "Bakery"     },
+  { value: "franchise",  label: "Franchise"  },
 ].filter((b) => !(HIDE_FRANCHISE && b.value === "franchise"));
+
+function VynnLogo() {
+  return (
+    <div className="w-[72px] h-[72px] flex items-center justify-center rounded-[22px] shadow-xl mb-4"
+      style={{ background: "#B24B2F" }}>
+      <svg viewBox="0 0 26 26" fill="none" width={42} height={42}>
+        <polygon points="13,2 22,7 22,19 13,24 4,19 4,7" stroke="white" strokeWidth="1.3" fill="none"/>
+        <polygon points="13,7 19,10.5 19,17.5 13,21 7,17.5 7,10.5" stroke="white" strokeWidth="1" fill="none"/>
+        <line x1="10" y1="3.5" x2="16.5" y2="22.5" stroke="white" strokeWidth="1.5"/>
+      </svg>
+    </div>
+  );
+}
 
 export default function AuthPage() {
   const router = useRouter();
   const { setSession, loadMenuFromTemplate } = useApp();
-  const [mode, setMode] = useState<Mode>("signin");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPwd, setShowPwd] = useState(false);
-  const [role, setRole] = useState<UserRole>("owner");
+
+  const [mode,         setMode        ] = useState<Mode>("signin");
+  const [username,     setUsername    ] = useState("");
+  const [password,     setPassword    ] = useState("");
+  const [showPwd,      setShowPwd     ] = useState(false);
+  const [role,         setRole        ] = useState<UserRole>("owner");
   const [businessName, setBusinessName] = useState("");
-  const [ownerName, setOwnerName] = useState("");
-  const [bizType, setBizType] = useState("restaurant");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [ownerName,    setOwnerName   ] = useState("");
+  const [bizType,      setBizType     ] = useState("restaurant");
+  const [loading,      setLoading     ] = useState(false);
+  const [error,        setError       ] = useState("");
 
   const handleSubmit = async () => {
     setError("");
@@ -49,92 +63,104 @@ export default function AuthPage() {
       const result = await signUp({ username, password, role, businessName, ownerName, businessType: bizType });
       if (!result.ok) { setError(result.error ?? "Signup failed"); setLoading(false); return; }
       const login = await signIn(username, password);
-      if (!login.ok) { setError("Signed up! Please sign in."); setLoading(false); setMode("signin"); return; }
+      if (!login.ok)  { setError("Signed up! Please sign in."); setLoading(false); setMode("signin"); return; }
       const uid = login.userId ?? `local_${username}`;
-      const session = {
-        userId: uid,
-        username,
-        role,
-        businessName,
-        businessType: bizType as BusinessType,
-        gstPercent: 5,
-      };
-      setSession(session);
+      setSession({ userId: uid, username, role, businessName, businessType: bizType as BusinessType, gstPercent: 5 });
       await loadMenuFromTemplate(bizType, uid);
     } else {
       const result = await signIn(username, password);
       if (!result.ok) { setError(result.error ?? "Sign in failed"); setLoading(false); return; }
       const uid = result.userId ?? `local_${username}`;
-      const session = {
-        userId: uid,
+      setSession({
+        userId:       uid,
         username,
-        role: result.role ?? "cashier" as UserRole,
+        role:         result.role         ?? "cashier" as UserRole,
         businessName: result.businessName ?? "",
         businessType: (result.businessType ?? "restaurant") as BusinessType,
-        gstPercent: result.gstPercent ?? 5,
-        upiId: result.upiId,
-      };
-      setSession(session);
+        gstPercent:   result.gstPercent   ?? 5,
+        upiId:        result.upiId,
+      });
       await loadMenuFromTemplate(result.businessType ?? "restaurant", uid);
     }
-
     router.replace("/pos");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-5 py-10">
-      <div className="flex flex-col items-center mb-8">
-        <div className="w-16 h-16 rounded-3xl bg-primary-500 flex items-center justify-center shadow-lg mb-3">
-          <span className="text-white text-3xl font-black">S</span>
-        </div>
-        <h1 className="text-2xl font-black text-gray-900">Servezy</h1>
-        <p className="text-sm text-gray-400 font-medium mt-0.5">Smart POS for Indian F&amp;B</p>
+    <div className="min-h-screen flex flex-col" style={{ background: "#1C0C06" }}>
+
+      {/* Hero */}
+      <div className="flex-1 flex flex-col items-center justify-center px-5 pt-16 pb-8">
+        <VynnLogo />
+        <h1 className="text-3xl mb-1"
+          style={{ fontFamily: "serif", color: "#B24B2F", letterSpacing: "0.14em", fontWeight: 700 }}>
+          VYNN
+        </h1>
+        <p className="text-xs font-semibold tracking-widest" style={{ color: "rgba(178,75,47,0.5)" }}>
+          SMART POS FOR INDIAN F&amp;B
+        </p>
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-        <div className="flex rounded-2xl bg-gray-100 p-1 mb-5">
+      {/* Sheet */}
+      <div className="w-full rounded-t-[28px] px-6 pt-7 pb-10" style={{ background: "#FFFCF8" }}>
+
+        {/* Toggle */}
+        <div className="flex rounded-xl p-[3px] mb-6" style={{ background: "#EFE7D8" }}>
           {(["signin", "signup"] as Mode[]).map((m) => (
             <button key={m} onClick={() => { setMode(m); setError(""); }}
-              className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${mode === m ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"}`}>
+              className="flex-1 py-2.5 rounded-[10px] text-sm font-bold transition-all"
+              style={{
+                background: mode === m ? "#FFFCF8" : "transparent",
+                color:      mode === m ? "#1C1008"  : "#8C6E58",
+              }}>
               {m === "signin" ? "Sign In" : "Create Account"}
             </button>
           ))}
         </div>
 
+        {/* Fields */}
         <div className="space-y-3 mb-4">
           <div className="relative">
-            <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="bm-input pl-10 border-2" placeholder="Username" value={username}
+            <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#8C6E58" }} />
+            <input className="bm-input pl-10" placeholder="Username" value={username}
               onChange={(e) => setUsername(e.target.value)} autoCapitalize="none" autoCorrect="off" />
           </div>
+
           <div className="relative">
-            <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input className="bm-input pl-10 pr-11 border-2" placeholder="Password"
-              type={showPwd ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} />
-            <button onClick={() => setShowPwd((p) => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+            <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#8C6E58" }} />
+            <input className="bm-input pl-10 pr-11" placeholder="Password"
+              type={showPwd ? "text" : "password"} value={password}
+              onChange={(e) => setPassword(e.target.value)} />
+            <button onClick={() => setShowPwd((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: "#8C6E58" }}>
               {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
 
           {mode === "signup" && (
             <>
-              <input className="bm-input border-2" placeholder="Business Name *" value={businessName}
+              <input className="bm-input" placeholder="Business Name *" value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)} />
-              <input className="bm-input border-2" placeholder="Owner Name" value={ownerName}
+              <input className="bm-input" placeholder="Owner Name" value={ownerName}
                 onChange={(e) => setOwnerName(e.target.value)} />
               <div className="relative">
-                <Store size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <select className="bm-input pl-10 border-2 appearance-none" value={bizType} onChange={(e) => setBizType(e.target.value)}>
+                <Store size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#8C6E58" }} />
+                <select className="bm-input pl-10 appearance-none" value={bizType}
+                  onChange={(e) => setBizType(e.target.value)}>
                   {BIZ_TYPES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
                 </select>
-                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "#8C6E58" }} />
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-500 mb-2">Role</p>
+                <p className="text-xs font-bold mb-2" style={{ color: "#8C6E58" }}>Role</p>
                 <div className="flex gap-2">
                   {(["owner", "cashier"] as UserRole[]).map((r) => (
                     <button key={r} onClick={() => setRole(r)}
-                      className={`flex-1 py-2 rounded-xl border-2 text-sm font-bold capitalize transition-all ${role === r ? "border-primary-500 bg-primary-50 text-primary-600" : "border-gray-200 text-gray-500"}`}>
+                      className="flex-1 py-2.5 rounded-xl border-2 text-sm font-bold capitalize transition-all"
+                      style={{
+                        borderColor: role === r ? "#B24B2F" : "rgba(178,75,47,0.18)",
+                        background:  role === r ? "#FAF0EB" : "#FFFCF8",
+                        color:       role === r ? "#B24B2F" : "#8C6E58",
+                      }}>
                       {r}
                     </button>
                   ))}
@@ -145,11 +171,15 @@ export default function AuthPage() {
         </div>
 
         {error && (
-          <div className="text-sm text-red-500 font-semibold bg-red-50 rounded-xl px-3 py-2 mb-4">{error}</div>
+          <div className="text-sm font-semibold rounded-xl px-3 py-2.5 mb-4"
+            style={{ background: "#FAF0EB", color: "#B24B2F" }}>
+            {error}
+          </div>
         )}
 
         <button onClick={handleSubmit} disabled={loading}
-          className="w-full h-12 bg-primary-500 text-white rounded-2xl font-bold press shadow-md disabled:opacity-50 flex items-center justify-center gap-2">
+          className="w-full rounded-2xl font-bold press shadow-md disabled:opacity-50 flex items-center justify-center gap-2 text-white"
+          style={{ background: "#B24B2F", height: 52, fontSize: 15 }}>
           {loading && <Loader2 size={16} className="animate-spin" />}
           {mode === "signin" ? "Sign In" : "Create Account"}
         </button>
