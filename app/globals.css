@@ -1,24 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* {
-  -webkit-tap-highlight-color: transparent;
-  box-sizing: border-box;
+:root {
+  --tc:       #B24B2F;
+  --tc-light: #FAF0EB;
+  --tc-pale:  #FDF5F2;
+  --sand:     #F7F1E8;
+  --sand2:    #EFE7D8;
+  --sand3:    #E5D9C6;
+  --ink:      #1C1008;
+  --ink2:     #3D2415;
+  --muted:    #8C6E58;
+  --muted2:   #B89880;
+  --border:   rgba(178,75,47,0.10);
+  --border2:  rgba(178,75,47,0.18);
+  --surface:  #FFFCF8;
 }
 
-html, body {
-  overscroll-behavior: none;
-}
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+html, body { overscroll-behavior: none; }
 
-/* Hide scrollbars on scroll containers */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Tap feedback */
 .press:active { transform: scale(0.96); transition: transform 0.08s ease; }
 
-/* Animations */
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
@@ -44,37 +53,36 @@ html, body {
 }
 .badge-pop { animation: badge-pop 0.2s ease; }
 
-/* Remove number input spinners */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
 input[type="number"] { -moz-appearance: textfield; }
 
-/* Shared input style */
 .bm-input {
-  @apply w-full h-11 px-3 rounded-xl border-2 border-gray-200 text-sm font-medium outline-none bg-white;
-  @apply focus:border-primary-500 transition-colors;
+  @apply w-full h-11 px-3 rounded-xl border-2 text-sm font-medium outline-none;
+  background: var(--sand);
+  border-color: var(--border2);
+  color: var(--ink);
+  transition: border-color 0.15s;
 }
+.bm-input:focus { border-color: var(--tc); }
+.bm-input::placeholder { color: var(--muted); }
 
-/* Safe area for notched phones */
 .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px); }
 
-/* ── Thermal invoice print styles ─────────────────────────────────────────── */
 @media print {
   body { background: white; }
   .no-print { display: none !important; }
 }
 
-/* Thermal receipt helpers (used in invoice component) */
-.c  { text-align: center; }
-.b  { font-weight: bold; }
-.lg { font-size: 15px; }
+.c   { text-align: center; }
+.b   { font-weight: bold; }
+.lg  { font-size: 15px; }
 .row { display: flex; justify-content: space-between; }
 
-/* Form label helper */
 .label {
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--muted);
   margin-bottom: 0.375rem;
 }
