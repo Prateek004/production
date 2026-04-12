@@ -10,24 +10,26 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          50:  "#FEF3EE",
-          100: "#FDE3D0",
-          200: "#FBC5A0",
-          300: "#F89E6A",
-          400: "#F5773A",
-          500: "#E8590C",
-          600: "#C44A08",
-          700: "#9B3A06",
+          50:  "#FDF5F2",
+          100: "#FAF0EB",
+          200: "#F5D9CC",
+          300: "#E8A98F",
+          400: "#D97055",
+          500: "#B24B2F",
+          600: "#8F3A22",
+          700: "#6B2A18",
         },
+      },
+      fontFamily: {
+        sans:  ["DM Sans", "sans-serif"],
+        serif: ["DM Serif Display", "serif"],
       },
       screens: {
         xs: "380px",
         md: "768px",
         lg: "1024px",
       },
-      maxWidth: {
-        app: "480px",
-      },
+      maxWidth: { app: "480px" },
     },
   },
   plugins: [],
