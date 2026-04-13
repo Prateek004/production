@@ -22,6 +22,7 @@ const LOCAL_USERS_KEY = "sz_local_users";
 interface LocalUser {
   username: string;
   passwordHash: string;
+  salt: string; // FIX: Added per-user salt
   role: UserRole;
   businessName: string;
   ownerName: string;
@@ -30,15 +31,19 @@ interface LocalUser {
   upiId?: string;
 }
 
-function hashPassword(password: string): string {
-  // Simple deterministic hash for local-only mode
-  let hash = 0;
-  for (let i = 0; i < password.length; i++) {
-    const c = password.charCodeAt(i);
-    hash = (hash << 5) - hash + c;
-    hash |= 0;
-  }
-  return String(hash);
+// FIX: Replaced insecure djb2 hash with SHA-256 + per-user salt via Web Crypto API
+async function hashPassword(password: string, salt: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(salt + password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function generateSalt(): string {
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function getLocalUsers(): LocalUser[] {
@@ -53,18 +58,20 @@ function saveLocalUsers(users: LocalUser[]): void {
   localStorage.setItem(LOCAL_USERS_KEY, JSON.stringify(users));
 }
 
-// Signup: creates auth user + profile row with business info
 export async function signUp(data: SignUpData): Promise<AuthResult> {
   const sb = getSupabase();
 
-  // Local-only mode
   if (!sb) {
     const users = getLocalUsers();
     const exists = users.some((u) => u.username === data.username.toLowerCase().trim());
     if (exists) return { ok: false, error: "Username already taken" };
+    // FIX: Generate salt and hash password properly
+    const salt = generateSalt();
+    const passwordHash = await hashPassword(data.password, salt);
     users.push({
       username: data.username.toLowerCase().trim(),
-      passwordHash: hashPassword(data.password),
+      passwordHash,
+      salt,
       role: data.role,
       businessName: data.businessName.trim(),
       ownerName: data.ownerName.trim(),
@@ -96,7 +103,6 @@ export async function signUp(data: SignUpData): Promise<AuthResult> {
   return { ok: true };
 }
 
-// Sign in and fetch profile
 export async function signIn(username: string, password: string): Promise<AuthResult & {
   userId?: string;
   role?: UserRole;
@@ -108,12 +114,35 @@ export async function signIn(username: string, password: string): Promise<AuthRe
 }> {
   const sb = getSupabase();
 
-  // Local-only mode
   if (!sb) {
     const users = getLocalUsers();
     const user = users.find((u) => u.username === username.toLowerCase().trim());
     if (!user) return { ok: false, error: "Username not found" };
-    if (user.passwordHash !== hashPassword(password)) return { ok: false, error: "Incorrect password" };
+    // FIX: Use async SHA-256 hash with stored salt; handle legacy accounts without salt
+    let match = false;
+    if (user.salt) {
+      const hash = await hashPassword(password, user.salt);
+      match = hash === user.passwordHash;
+    } else {
+      // Legacy fallback: old djb2 hash migration path — force password reset isn't viable,
+      // so re-hash on successful legacy check and upgrade the record
+      let legacyHash = 0;
+      for (let i = 0; i < password.length; i++) {
+        const c = password.charCodeAt(i);
+        legacyHash = (legacyHash << 5) - legacyHash + c;
+        legacyHash |= 0;
+      }
+      if (String(legacyHash) === user.passwordHash) {
+        match = true;
+        // Upgrade to secure hash in-place
+        const salt = generateSalt();
+        const newHash = await hashPassword(password, salt);
+        user.salt = salt;
+        user.passwordHash = newHash;
+        saveLocalUsers(users);
+      }
+    }
+    if (!match) return { ok: false, error: "Incorrect password" };
     return {
       ok: true,
       userId: `local_${user.username}`,
@@ -161,7 +190,7 @@ export async function signOut(): Promise<void> {
 export async function getCurrentUserId(): Promise<string | null> {
   const sb = getSupabase();
   if (!sb) {
-    const raw = typeof window !== "undefined" ? localStorage.getItem("sz_session") : null;
+    const raw = typeof window !== "undefined" ? localStorage.getItem("vynn_session") : null;
     if (!raw) return null;
     try {
       const s = JSON.parse(raw);
