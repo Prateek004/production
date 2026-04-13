@@ -82,7 +82,7 @@ export default function AuthPage() {
       });
       await loadMenuFromTemplate(result.businessType ?? "restaurant", uid);
     }
-    router.replace("/pos");
+    router.replace("/dashboard");
   };
 
   return (
