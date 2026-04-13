@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Order, MenuItem, MenuCategory, RawMaterial, FinishedGood } from "@/lib/types";
+import type { Order, MenuItem, MenuCategory, RawMaterial, FinishedGood, OpenTable } from "@/lib/types";
 
 type WithUid<T> = T & { _uid: string };
 
@@ -10,6 +10,7 @@ class ServezyDB extends Dexie {
   rawMaterials!: Table<WithUid<RawMaterial>, string>;
   finishedGoods!: Table<WithUid<FinishedGood>, string>;
   barItems!: Table<WithUid<FinishedGood>, string>;
+  openTables!: Table<WithUid<OpenTable>, string>;
 
   constructor() {
     super("servezy_db");
@@ -23,6 +24,16 @@ class ServezyDB extends Dexie {
       rawMaterials:  "id, _uid, name",
       finishedGoods: "id, _uid, name, expiryDate",
       barItems:      "id, _uid, name, expiryDate",
+    });
+    // FIX: Added openTables table in a new schema version
+    this.version(5).stores({
+      orders:        "id, _uid, createdAt, syncStatus",
+      menuItems:     "id, _uid, categoryId",
+      categories:    "id, _uid, sortOrder",
+      rawMaterials:  "id, _uid, name",
+      finishedGoods: "id, _uid, name, expiryDate",
+      barItems:      "id, _uid, name, expiryDate",
+      openTables:    "id, _uid, tableNumber",
     });
   }
 }
@@ -46,8 +57,10 @@ export async function dbGetTodaysOrders(uid: string): Promise<Order[]> {
   const all = await getDB().orders.where("_uid").equals(uid).toArray();
   return all.filter((o) => o.createdAt.startsWith(today)) as unknown as Order[];
 }
-export async function dbGetPendingOrders(): Promise<Order[]> {
-  return getDB().orders.where("syncStatus").anyOf("pending", "failed").toArray() as unknown as Order[];
+// FIX: Filter pending orders by uid so backgroundSync doesn't leak cross-user data
+export async function dbGetPendingOrders(uid: string): Promise<Order[]> {
+  const all = await getDB().orders.where("_uid").equals(uid).toArray();
+  return all.filter((o) => o.syncStatus === "pending" || o.syncStatus === "failed") as unknown as Order[];
 }
 export async function dbUpdateSyncStatus(id: string, status: Order["syncStatus"]): Promise<void> {
   await getDB().orders.update(id, { syncStatus: status });
@@ -118,4 +131,17 @@ export async function dbDeleteBarItem(id: string, uid: string): Promise<void> {
 }
 export async function dbGetAllBarItems(uid: string): Promise<FinishedGood[]> {
   return getDB().barItems.where("_uid").equals(uid).toArray() as unknown as FinishedGood[];
+}
+
+// ── Open Tables ───────────────────────────────────────────────────────────────
+// FIX: These 3 functions were completely missing, crashing openTableAddItems / closeTable
+export async function dbSaveOpenTable(table: OpenTable, uid: string): Promise<void> {
+  await getDB().openTables.put({ ...table, _uid: uid });
+}
+export async function dbDeleteOpenTable(id: string, uid: string): Promise<void> {
+  const rec = await getDB().openTables.get(id);
+  if (rec && rec._uid === uid) await getDB().openTables.delete(id);
+}
+export async function dbGetAllOpenTables(uid: string): Promise<OpenTable[]> {
+  return getDB().openTables.where("_uid").equals(uid).toArray() as unknown as OpenTable[];
 }
