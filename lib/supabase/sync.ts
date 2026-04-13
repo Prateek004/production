@@ -39,10 +39,12 @@ export async function syncOrder(order: Order): Promise<boolean> {
   }
 }
 
-export async function backgroundSync(): Promise<void> {
+// FIX: uid is now required — prevents cross-user order leakage when multiple
+// local accounts exist and only one is currently authenticated with Supabase
+export async function backgroundSync(uid: string): Promise<void> {
   if (!isSupabaseEnabled()) return;
   try {
-    const pending = await dbGetPendingOrders();
+    const pending = await dbGetPendingOrders(uid);
     for (const order of pending) await syncOrder(order);
   } catch {
     // offline-first — silent
