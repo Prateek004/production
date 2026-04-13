@@ -20,13 +20,15 @@ export const calcDiscount = (
 export const calcGST = (afterDiscountPaise: number, pct: number): number =>
   Math.round((afterDiscountPaise * pct) / 100);
 
+// FIX: Use crypto.randomUUID suffix (first 6 chars) instead of Date.now() last-4
+// to prevent bill number collisions under rapid checkout
 export const generateBillNumber = (): string => {
   const d = new Date();
   const yy = String(d.getFullYear()).slice(2);
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  const seq = String(Date.now()).slice(-4);
-  return `SV${yy}${mm}${dd}-${seq}`;
+  const rand = crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase();
+  return `SV${yy}${mm}${dd}-${rand}`;
 };
 
 export const fmtTime = (iso: string): string =>
