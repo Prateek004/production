@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { DM_Sans } from "next/font/google";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/lib/store/AppContext";
 import ToastContainer from "@/components/ui/ToastContainer";
 
-const dmSans = DM_Sans({
+const nunito = Nunito({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   display: "swap",
-  variable: "--font-dm-sans",
+  variable: "--font-nunito",
 });
 
 export const metadata: Metadata = {
@@ -23,13 +23,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#B24B2F",
+  themeColor: "#1C1410",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={dmSans.variable}>
-      <body className={`${dmSans.className} bg-[#E8DDD0] text-[#1C1008] antialiased`}>
+    <html lang="en" className={nunito.variable}>
+      <body className={`${nunito.className} bg-gray-50 text-gray-900 antialiased`}>
         <AppProvider>
           {children}
           <ToastContainer />
