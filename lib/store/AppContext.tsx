@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from "react";
-import type { MenuItem, MenuCategory, CartItem, Order, UserSession, ServiceMode } from "@/lib/types";
-import { calcDiscount, calcGST, generateBillNumber, toP } from "@/lib/utils";
+import type { MenuItem, MenuCategory, CartItem, Order, UserSession, ServiceMode, OpenTable } from "@/lib/types";
+import { calcDiscount, calcGST, generateBillNumber } from "@/lib/utils";
 import { MENU_TEMPLATES } from "@/lib/utils/menuTemplates";
 
 export interface Toast {
@@ -19,24 +19,36 @@ interface AppState {
   serviceMode: ServiceMode;
   tableNumber: number | undefined;
   orders: Order[];
+  openTables: OpenTable[];
   isLoading: boolean;
   toasts: Toast[];
 }
 
 const initialState: AppState = {
-  session: null,
-  menuItems: [],
-  categories: [],
-  cart: [],
-  serviceMode: "dine_in",
-  tableNumber: undefined,
-  orders: [],
-  isLoading: true,
-  toasts: [],
+  session: null, menuItems: [], categories: [],
+  cart: [], serviceMode: "dine_in", tableNumber: undefined,
+  orders: [], openTables: [], isLoading: true, toasts: [],
 };
 
+// ── localStorage helpers ──────────────────────────────────────────────────────
+const K = { session: "vynn_session", cart: "vynn_cart", ui: "vynn_ui" };
+
+function ls_get<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback; } catch { return fallback; }
+}
+function ls_set(key: string, value: unknown) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+function ls_del(key: string) {
+  if (typeof window === "undefined") return;
+  try { localStorage.removeItem(key); } catch {}
+}
+
+// ── Reducer ───────────────────────────────────────────────────────────────────
 type Action =
-  | { type: "INIT_DONE"; session: UserSession | null; items: MenuItem[]; categories: MenuCategory[]; orders: Order[] }
+  | { type: "INIT_DONE"; session: UserSession | null; items: MenuItem[]; categories: MenuCategory[]; orders: Order[]; openTables: OpenTable[]; cart: CartItem[]; serviceMode: ServiceMode; tableNumber: number | undefined }
   | { type: "SET_SESSION"; payload: UserSession | null }
   | { type: "SET_MENU"; items: MenuItem[]; categories: MenuCategory[] }
   | { type: "SET_SERVICE_MODE"; mode: ServiceMode }
@@ -51,87 +63,50 @@ type Action =
   | { type: "CATEGORY_UPSERT"; payload: MenuCategory }
   | { type: "CATEGORY_DELETE"; id: string }
   | { type: "TOAST_ADD"; payload: Toast }
-  | { type: "TOAST_REMOVE"; id: string };
+  | { type: "TOAST_REMOVE"; id: string }
+  | { type: "OPEN_TABLE_UPSERT"; payload: OpenTable }
+  | { type: "OPEN_TABLE_REMOVE"; id: string }
+  | { type: "LOGOUT" };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "INIT_DONE":
-      return { ...state, session: action.session, menuItems: action.items, categories: action.categories, orders: action.orders, isLoading: false };
-    case "SET_SESSION":
-      return { ...state, session: action.payload };
-    case "SET_MENU":
-      return { ...state, menuItems: action.items, categories: action.categories };
-    case "SET_SERVICE_MODE":
-      return { ...state, serviceMode: action.mode };
-    case "SET_TABLE":
-      return { ...state, tableNumber: action.tableNumber };
+      return { ...state, session: action.session, menuItems: action.items, categories: action.categories, orders: action.orders, openTables: action.openTables, cart: action.cart, serviceMode: action.serviceMode, tableNumber: action.tableNumber, isLoading: false };
+    case "SET_SESSION":      return { ...state, session: action.payload };
+    case "SET_MENU":         return { ...state, menuItems: action.items, categories: action.categories };
+    case "SET_SERVICE_MODE": return { ...state, serviceMode: action.mode };
+    case "SET_TABLE":        return { ...state, tableNumber: action.tableNumber };
     case "CART_ADD": {
-      const incoming = action.payload;
-      const key = [
-        incoming.menuItemId,
-        incoming.selectedSize ?? "",
-        incoming.selectedPortion ?? "",
-        incoming.selectedAddOns.map((a) => a.id).sort().join(","),
-      ].join("|");
-      const existingIdx = state.cart.findIndex((c) => {
-        const k = [
-          c.menuItemId,
-          c.selectedSize ?? "",
-          c.selectedPortion ?? "",
-          c.selectedAddOns.map((a) => a.id).sort().join(","),
-        ].join("|");
-        return k === key;
-      });
-      if (existingIdx !== -1) {
-        const newCart = state.cart.map((c, i) =>
-          i === existingIdx ? { ...c, qty: c.qty + incoming.qty } : c
-        );
-        return { ...state, cart: newCart };
-      }
-      return { ...state, cart: [...state.cart, incoming] };
+      const inc = action.payload;
+      const key = [inc.menuItemId, inc.selectedSize ?? "", inc.selectedPortion ?? "", inc.selectedAddOns.map((a) => a.id).sort().join(",")].join("|");
+      const idx = state.cart.findIndex((c) => [c.menuItemId, c.selectedSize ?? "", c.selectedPortion ?? "", c.selectedAddOns.map((a) => a.id).sort().join(",")].join("|") === key);
+      if (idx !== -1) return { ...state, cart: state.cart.map((c, i) => i === idx ? { ...c, qty: c.qty + inc.qty } : c) };
+      return { ...state, cart: [...state.cart, inc] };
     }
-    case "CART_QTY": {
-      const cart = action.qty <= 0
-        ? state.cart.filter((i) => i.cartId !== action.cartId)
-        : state.cart.map((i) => i.cartId === action.cartId ? { ...i, qty: action.qty } : i);
-      return { ...state, cart };
-    }
-    case "CART_REMOVE":
-      return { ...state, cart: state.cart.filter((i) => i.cartId !== action.cartId) };
-    case "CART_CLEAR":
-      return { ...state, cart: [], tableNumber: undefined };
-    case "ORDER_ADD":
-      return { ...state, orders: [action.payload, ...state.orders] };
-    case "MENU_ITEM_UPSERT":
-      return {
-        ...state,
-        menuItems: state.menuItems.some((i) => i.id === action.payload.id)
-          ? state.menuItems.map((i) => i.id === action.payload.id ? action.payload : i)
-          : [...state.menuItems, action.payload],
-      };
-    case "MENU_ITEM_DELETE":
-      return { ...state, menuItems: state.menuItems.filter((i) => i.id !== action.id) };
-    case "CATEGORY_UPSERT":
-      return {
-        ...state,
-        categories: state.categories.some((c) => c.id === action.payload.id)
-          ? state.categories.map((c) => c.id === action.payload.id ? action.payload : c)
-          : [...state.categories, action.payload],
-      };
-    case "CATEGORY_DELETE":
-      return { ...state, categories: state.categories.filter((c) => c.id !== action.id) };
-    case "TOAST_ADD":
-      return { ...state, toasts: [...state.toasts, action.payload] };
-    case "TOAST_REMOVE":
-      return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
-    default:
-      return state;
+    case "CART_QTY":
+      return { ...state, cart: action.qty <= 0 ? state.cart.filter((i) => i.cartId !== action.cartId) : state.cart.map((i) => i.cartId === action.cartId ? { ...i, qty: action.qty } : i) };
+    case "CART_REMOVE":      return { ...state, cart: state.cart.filter((i) => i.cartId !== action.cartId) };
+    case "CART_CLEAR":       return { ...state, cart: [], tableNumber: undefined };
+    case "ORDER_ADD":        return { ...state, orders: [action.payload, ...state.orders] };
+    case "MENU_ITEM_UPSERT": return { ...state, menuItems: state.menuItems.some((i) => i.id === action.payload.id) ? state.menuItems.map((i) => i.id === action.payload.id ? action.payload : i) : [...state.menuItems, action.payload] };
+    case "MENU_ITEM_DELETE": return { ...state, menuItems: state.menuItems.filter((i) => i.id !== action.id) };
+    case "CATEGORY_UPSERT":  return { ...state, categories: state.categories.some((c) => c.id === action.payload.id) ? state.categories.map((c) => c.id === action.payload.id ? action.payload : c) : [...state.categories, action.payload] };
+    case "CATEGORY_DELETE":  return { ...state, categories: state.categories.filter((c) => c.id !== action.id) };
+    case "TOAST_ADD":        return { ...state, toasts: [...state.toasts, action.payload] };
+    case "TOAST_REMOVE":     return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
+    case "OPEN_TABLE_UPSERT": return { ...state, openTables: state.openTables.some((t) => t.id === action.payload.id) ? state.openTables.map((t) => t.id === action.payload.id ? action.payload : t) : [...state.openTables, action.payload] };
+    case "OPEN_TABLE_REMOVE": return { ...state, openTables: state.openTables.filter((t) => t.id !== action.id) };
+    case "LOGOUT":            return { ...initialState, isLoading: false, toasts: state.toasts };
+    default: return state;
   }
 }
 
+// ── Context ───────────────────────────────────────────────────────────────────
 interface AppContextValue {
   state: AppState;
   setSession: (s: UserSession | null) => void;
+  login: (session: UserSession) => Promise<void>;
+  logout: () => Promise<void>;
   setServiceMode: (m: ServiceMode) => void;
   setTableNumber: (n: number | undefined) => void;
   loadMenuFromTemplate: (businessType: string, userId: string) => Promise<void>;
@@ -139,18 +114,14 @@ interface AppContextValue {
   updateCartQty: (cartId: string, qty: number) => void;
   removeFromCart: (cartId: string) => void;
   clearCart: () => void;
-  placeOrder: (params: {
-    paymentMethod: Order["paymentMethod"];
-    discountType: "flat" | "percent";
-    discountValue: number;
-    cashReceivedPaise?: number;
-    splitPayment?: { cashPaise: number; upiPaise: number };
-  }) => Promise<Order>;
+  placeOrder: (params: { paymentMethod: Order["paymentMethod"]; discountType: "flat" | "percent"; discountValue: number; cashReceivedPaise?: number; splitPayment?: { cashPaise: number; upiPaise: number } }) => Promise<Order>;
   upsertMenuItem: (item: MenuItem) => Promise<void>;
   deleteMenuItem: (id: string) => Promise<void>;
   upsertCategory: (cat: MenuCategory) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   showToast: (message: string, type?: Toast["type"]) => void;
+  openTableAddItems: (tableNumber: number, items: CartItem[]) => Promise<OpenTable>;
+  closeTable: (tableId: string, params: { paymentMethod: Order["paymentMethod"]; discountType: "flat" | "percent"; discountValue: number; cashReceivedPaise?: number; splitPayment?: { cashPaise: number; upiPaise: number } }) => Promise<Order>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -158,46 +129,74 @@ const AppContext = createContext<AppContextValue | null>(null);
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  // ── Boot ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     async function init() {
       try {
-        const raw = localStorage.getItem("sz_session");
-        const session: UserSession | null = raw ? JSON.parse(raw) : null;
+        const session  = ls_get<UserSession | null>(K.session, null);
+        const cart     = ls_get<CartItem[]>(K.cart, []);
+        const ui       = ls_get<{ serviceMode: ServiceMode; tableNumber: number | undefined }>(K.ui, { serviceMode: "dine_in", tableNumber: undefined });
 
         if (!session) {
-          dispatch({ type: "INIT_DONE", session: null, items: [], categories: [], orders: [] });
+          dispatch({ type: "INIT_DONE", session: null, items: [], categories: [], orders: [], openTables: [], cart: [], serviceMode: "dine_in", tableNumber: undefined });
           return;
         }
-
         const db = await import("@/lib/db");
         const uid = session.userId;
-        const [items, categories, orders] = await Promise.all([
+        const [items, categories, orders, openTables] = await Promise.all([
           db.dbGetAllMenuItems(uid),
           db.dbGetAllCategories(uid),
           db.dbGetTodaysOrders(uid),
+          db.dbGetAllOpenTables(uid),
         ]);
-        dispatch({ type: "INIT_DONE", session, items, categories, orders });
-        import("@/lib/supabase/sync").then(({ backgroundSync }) => backgroundSync()).catch(() => {});
+        dispatch({ type: "INIT_DONE", session, items, categories, orders, openTables, cart, serviceMode: ui.serviceMode ?? "dine_in", tableNumber: ui.tableNumber });
+        import("@/lib/supabase/sync").then(({ backgroundSync }) => backgroundSync(uid)).catch(() => {});
       } catch {
-        dispatch({ type: "INIT_DONE", session: null, items: [], categories: [], orders: [] });
+        dispatch({ type: "INIT_DONE", session: null, items: [], categories: [], orders: [], openTables: [], cart: [], serviceMode: "dine_in", tableNumber: undefined });
       }
     }
     init();
   }, []);
 
+  // ── Auto-persist on every state change ───────────────────────────────────
+  useEffect(() => { if (!state.isLoading) { state.session ? ls_set(K.session, state.session) : ls_del(K.session); } }, [state.session, state.isLoading]);
+  useEffect(() => { if (!state.isLoading) ls_set(K.cart, state.cart); }, [state.cart, state.isLoading]);
+  useEffect(() => { if (!state.isLoading) ls_set(K.ui, { serviceMode: state.serviceMode, tableNumber: state.tableNumber }); }, [state.serviceMode, state.tableNumber, state.isLoading]);
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const login = useCallback(async (session: UserSession) => {
+    ls_set(K.session, session);
+    try {
+      const db = await import("@/lib/db");
+      const uid = session.userId;
+      const cart = ls_get<CartItem[]>(K.cart, []);
+      const ui   = ls_get<{ serviceMode: ServiceMode; tableNumber: number | undefined }>(K.ui, { serviceMode: "dine_in", tableNumber: undefined });
+      const [items, categories, orders, openTables] = await Promise.all([
+        db.dbGetAllMenuItems(uid),
+        db.dbGetAllCategories(uid),
+        db.dbGetTodaysOrders(uid),
+        db.dbGetAllOpenTables(uid),
+      ]);
+      dispatch({ type: "INIT_DONE", session, items, categories, orders, openTables, cart, serviceMode: ui.serviceMode ?? "dine_in", tableNumber: ui.tableNumber });
+      import("@/lib/supabase/sync").then(({ backgroundSync }) => backgroundSync(uid)).catch(() => {});
+    } catch {
+      dispatch({ type: "INIT_DONE", session, items: [], categories: [], orders: [], openTables: [], cart: [], serviceMode: "dine_in", tableNumber: undefined });
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    ls_del(K.session); ls_del(K.cart); ls_del(K.ui);
+    try { const { signOut } = await import("@/lib/supabase/auth"); await signOut(); } catch {}
+    dispatch({ type: "LOGOUT" });
+  }, []);
+
   const setSession = useCallback((s: UserSession | null) => {
-    if (s) localStorage.setItem("sz_session", JSON.stringify(s));
-    else localStorage.removeItem("sz_session");
     dispatch({ type: "SET_SESSION", payload: s });
+    // auto-persist fires via useEffect above
   }, []);
 
-  const setServiceMode = useCallback((mode: ServiceMode) => {
-    dispatch({ type: "SET_SERVICE_MODE", mode });
-  }, []);
-
-  const setTableNumber = useCallback((tableNumber: number | undefined) => {
-    dispatch({ type: "SET_TABLE", tableNumber });
-  }, []);
+  const setServiceMode  = useCallback((mode: ServiceMode) => dispatch({ type: "SET_SERVICE_MODE", mode }), []);
+  const setTableNumber  = useCallback((n: number | undefined) => dispatch({ type: "SET_TABLE", tableNumber: n }), []);
 
   const loadMenuFromTemplate = useCallback(async (businessType: string, userId: string) => {
     const db = await import("@/lib/db");
@@ -210,92 +209,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_MENU", items: template.items, categories: template.categories });
   }, []);
 
-  const addToCart = useCallback((item: CartItem) => dispatch({ type: "CART_ADD", payload: item }), []);
-  const updateCartQty = useCallback((cartId: string, qty: number) => dispatch({ type: "CART_QTY", cartId, qty }), []);
+  const addToCart      = useCallback((item: CartItem) => dispatch({ type: "CART_ADD", payload: item }), []);
+  const updateCartQty  = useCallback((cartId: string, qty: number) => dispatch({ type: "CART_QTY", cartId, qty }), []);
   const removeFromCart = useCallback((cartId: string) => dispatch({ type: "CART_REMOVE", cartId }), []);
-  const clearCart = useCallback(() => dispatch({ type: "CART_CLEAR" }), []);
+  const clearCart      = useCallback(() => dispatch({ type: "CART_CLEAR" }), []);
 
-  const placeOrder = useCallback(async (params: {
-    paymentMethod: Order["paymentMethod"];
-    discountType: "flat" | "percent";
-    discountValue: number;
-    cashReceivedPaise?: number;
-    splitPayment?: { cashPaise: number; upiPaise: number };
-  }): Promise<Order> => {
+  const placeOrder = useCallback(async (params: { paymentMethod: Order["paymentMethod"]; discountType: "flat" | "percent"; discountValue: number; cashReceivedPaise?: number; splitPayment?: { cashPaise: number; upiPaise: number } }): Promise<Order> => {
     const { paymentMethod, discountType, discountValue, cashReceivedPaise, splitPayment } = params;
-    const cartSnapshot = structuredClone(state.cart);
-    if (cartSnapshot.length === 0) throw new Error("Cart is empty");
-
-    const subtotalPaise = cartSnapshot.reduce((sum, item) => {
-      const ao = item.selectedAddOns.reduce((s, a) => s + a.pricePaise, 0);
-      return sum + (item.unitPricePaise + ao) * item.qty;
-    }, 0);
-
-    const discountPaise = calcDiscount(subtotalPaise, discountType, discountValue);
-    const afterDiscount = Math.max(0, subtotalPaise - discountPaise);
-    const gstPercent = state.session?.gstPercent ?? 0;
-    const gstPaise = calcGST(afterDiscount, gstPercent);
-    const totalPaise = afterDiscount + gstPaise;
-    const changePaise = cashReceivedPaise ? Math.max(0, cashReceivedPaise - totalPaise) : 0;
-
-    const order: Order = {
-      id: crypto.randomUUID(),
-      billNumber: generateBillNumber(),
-      items: cartSnapshot,
-      serviceMode: state.serviceMode,
-      tableNumber: state.tableNumber,
-      subtotalPaise,
-      discountPaise,
-      discountType,
-      discountValue,
-      gstPercent,
-      gstPaise,
-      totalPaise,
-      paymentMethod,
-      splitPayment,
-      cashReceivedPaise,
-      changePaise,
-      createdAt: new Date().toISOString(),
-      syncStatus: "pending",
-    };
-
+    const snap = structuredClone(state.cart);
+    if (snap.length === 0) throw new Error("Cart is empty");
+    const subtotalPaise  = snap.reduce((s, i) => s + (i.unitPricePaise + i.selectedAddOns.reduce((x, a) => x + a.pricePaise, 0)) * i.qty, 0);
+    const discountPaise  = calcDiscount(subtotalPaise, discountType, discountValue);
+    const afterDiscount  = Math.max(0, subtotalPaise - discountPaise);
+    const gstPercent     = state.session?.gstPercent ?? 0;
+    const gstPaise       = calcGST(afterDiscount, gstPercent);
+    const totalPaise     = afterDiscount + gstPaise;
+    const changePaise    = cashReceivedPaise ? Math.max(0, cashReceivedPaise - totalPaise) : 0;
+    const order: Order   = { id: crypto.randomUUID(), billNumber: generateBillNumber(), items: snap, serviceMode: state.serviceMode, tableNumber: state.tableNumber, subtotalPaise, discountPaise, discountType, discountValue, gstPercent, gstPaise, totalPaise, paymentMethod, splitPayment, cashReceivedPaise, changePaise, createdAt: new Date().toISOString(), syncStatus: "pending" };
     const uid = state.session?.userId ?? "default";
     const db = await import("@/lib/db");
     await db.dbSaveOrder(order, uid);
     dispatch({ type: "ORDER_ADD", payload: order });
     dispatch({ type: "CART_CLEAR" });
-
     import("@/lib/supabase/sync").then(({ syncOrder }) => syncOrder(order)).catch(() => {});
     return order;
   }, [state.cart, state.session, state.serviceMode, state.tableNumber]);
 
-  const upsertMenuItem = useCallback(async (item: MenuItem) => {
+  const openTableAddItems = useCallback(async (tableNumber: number, items: CartItem[]): Promise<OpenTable> => {
     const uid = state.session?.userId ?? "default";
-    const db = await import("@/lib/db");
-    await db.dbSaveMenuItem(item, uid);
-    dispatch({ type: "MENU_ITEM_UPSERT", payload: item });
-  }, [state.session]);
+    const db  = await import("@/lib/db");
+    const ex  = state.openTables.find((t) => t.tableNumber === tableNumber);
+    const now = new Date().toISOString();
+    const tab: OpenTable = ex ? { ...ex, items: [...ex.items, ...items], updatedAt: now } : { id: crypto.randomUUID(), tableNumber, items, openedAt: now, updatedAt: now };
+    await db.dbSaveOpenTable(tab, uid);
+    dispatch({ type: "OPEN_TABLE_UPSERT", payload: tab });
+    return tab;
+  }, [state.openTables, state.session]);
 
-  const deleteMenuItem = useCallback(async (id: string) => {
+  const closeTable = useCallback(async (tableId: string, params: { paymentMethod: Order["paymentMethod"]; discountType: "flat" | "percent"; discountValue: number; cashReceivedPaise?: number; splitPayment?: { cashPaise: number; upiPaise: number } }): Promise<Order> => {
+    const tab = state.openTables.find((t) => t.id === tableId);
+    if (!tab) throw new Error("Table not found");
+    const { paymentMethod, discountType, discountValue, cashReceivedPaise, splitPayment } = params;
+    const subtotalPaise = tab.items.reduce((s, i) => s + (i.unitPricePaise + i.selectedAddOns.reduce((x, a) => x + a.pricePaise, 0)) * i.qty, 0);
+    const discountPaise = calcDiscount(subtotalPaise, discountType, discountValue);
+    const afterDiscount = Math.max(0, subtotalPaise - discountPaise);
+    const gstPercent    = state.session?.gstPercent ?? 0;
+    const gstPaise      = calcGST(afterDiscount, gstPercent);
+    const totalPaise    = afterDiscount + gstPaise;
+    const changePaise   = cashReceivedPaise ? Math.max(0, cashReceivedPaise - totalPaise) : 0;
+    const order: Order  = { id: crypto.randomUUID(), billNumber: generateBillNumber(), items: tab.items, serviceMode: "dine_in", tableNumber: tab.tableNumber, subtotalPaise, discountPaise, discountType, discountValue, gstPercent, gstPaise, totalPaise, paymentMethod, splitPayment, cashReceivedPaise, changePaise, createdAt: new Date().toISOString(), syncStatus: "pending" };
     const uid = state.session?.userId ?? "default";
-    const db = await import("@/lib/db");
-    await db.dbDeleteMenuItem(id, uid);
-    dispatch({ type: "MENU_ITEM_DELETE", id });
-  }, [state.session]);
+    const db  = await import("@/lib/db");
+    await db.dbSaveOrder(order, uid);
+    await db.dbDeleteOpenTable(tableId, uid);
+    dispatch({ type: "ORDER_ADD", payload: order });
+    dispatch({ type: "OPEN_TABLE_REMOVE", id: tableId });
+    import("@/lib/supabase/sync").then(({ syncOrder }) => syncOrder(order)).catch(() => {});
+    return order;
+  }, [state.openTables, state.session]);
 
-  const upsertCategory = useCallback(async (cat: MenuCategory) => {
-    const uid = state.session?.userId ?? "default";
-    const db = await import("@/lib/db");
-    await db.dbSaveCategory(cat, uid);
-    dispatch({ type: "CATEGORY_UPSERT", payload: cat });
-  }, [state.session]);
-
-  const deleteCategory = useCallback(async (id: string) => {
-    const uid = state.session?.userId ?? "default";
-    const db = await import("@/lib/db");
-    await db.dbDeleteCategory(id, uid);
-    dispatch({ type: "CATEGORY_DELETE", id });
-  }, [state.session]);
+  const upsertMenuItem = useCallback(async (item: MenuItem) => { const uid = state.session?.userId ?? "default"; const db = await import("@/lib/db"); await db.dbSaveMenuItem(item, uid); dispatch({ type: "MENU_ITEM_UPSERT", payload: item }); }, [state.session]);
+  const deleteMenuItem = useCallback(async (id: string) => { const uid = state.session?.userId ?? "default"; const db = await import("@/lib/db"); await db.dbDeleteMenuItem(id, uid); dispatch({ type: "MENU_ITEM_DELETE", id }); }, [state.session]);
+  const upsertCategory = useCallback(async (cat: MenuCategory) => { const uid = state.session?.userId ?? "default"; const db = await import("@/lib/db"); await db.dbSaveCategory(cat, uid); dispatch({ type: "CATEGORY_UPSERT", payload: cat }); }, [state.session]);
+  const deleteCategory = useCallback(async (id: string) => { const uid = state.session?.userId ?? "default"; const db = await import("@/lib/db"); await db.dbDeleteCategory(id, uid); dispatch({ type: "CATEGORY_DELETE", id }); }, [state.session]);
 
   const showToast = useCallback((message: string, type: Toast["type"] = "success") => {
     const id = crypto.randomUUID();
@@ -304,11 +280,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AppContext.Provider value={{
-      state, setSession, setServiceMode, setTableNumber, loadMenuFromTemplate,
-      addToCart, updateCartQty, removeFromCart, clearCart, placeOrder,
-      upsertMenuItem, deleteMenuItem, upsertCategory, deleteCategory, showToast,
-    }}>
+    <AppContext.Provider value={{ state, setSession, login, logout, setServiceMode, setTableNumber, loadMenuFromTemplate, addToCart, updateCartQty, removeFromCart, clearCart, placeOrder, upsertMenuItem, deleteMenuItem, upsertCategory, deleteCategory, showToast, openTableAddItems, closeTable }}>
       {children}
     </AppContext.Provider>
   );
