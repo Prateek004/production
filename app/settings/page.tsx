@@ -5,7 +5,6 @@ import { useApp } from "@/lib/store/AppContext";
 import AppShell from "@/components/ui/AppShell";
 import { Cloud, CloudOff, LogOut, Trash2 } from "lucide-react";
 import { isSupabaseEnabled } from "@/lib/supabase/client";
-import { signOut } from "@/lib/supabase/auth";
 import { HIDE_FRANCHISE } from "@/lib/utils";
 import type { StockSettings } from "@/lib/types";
 
@@ -14,7 +13,8 @@ const GST_OPTIONS = [0, 5, 12, 18];
 const BAR_BIZ_TYPES = ["cafe", "restaurant", "franchise"].filter((t) => !HIDE_FRANCHISE || t !== "franchise");
 
 export default function SettingsPage() {
-  const { state, setSession, showToast } = useApp();
+  // FIX: destructure logout from context instead of calling signOut directly
+  const { state, setSession, showToast, logout } = useApp();
   const router = useRouter();
   const { session } = state;
   const isOwner = session?.role === "owner";
@@ -40,7 +40,8 @@ export default function SettingsPage() {
     setSaving(true);
     const stockSettings: StockSettings = { tablesEnabled, kotEnabled, barEnabled, tableCount };
     const updated = { ...session, gstPercent: gst, upiId: upiId.trim() || undefined, stockSettings };
-    localStorage.setItem("sz_session", JSON.stringify(updated));
+    // FIX: was "sz_session" — must match the key AppContext uses: "vynn_session"
+    localStorage.setItem("vynn_session", JSON.stringify(updated));
     setSession(updated);
 
     if (isSupabaseEnabled()) {
@@ -58,8 +59,9 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    setSession(null);
+    // FIX: was calling signOut() + setSession(null) directly, skipping cart/ui key cleanup.
+    // Now calls ctx.logout() which clears vynn_session, vynn_cart, vynn_ui and dispatches LOGOUT.
+    await logout();
     router.replace("/auth");
   };
 
